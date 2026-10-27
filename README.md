@@ -11,7 +11,8 @@ Un agent **Maître** reçoit une consigne en langage naturel (« crée 2 posts I
 ## Stack
 
 - **Application** : Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4
-- **Prévu** : shadcn/ui, Drizzle ORM + PostgreSQL, Inngest (tâches de fond), OpenAI Agents SDK avec un modèle Gemini, ImageKit, un service de publication derrière une interface commune
+- **Base et authentification** : Drizzle ORM + PostgreSQL (Supabase), Better Auth (e-mail et mot de passe, Google)
+- **Prévu** : shadcn/ui, Inngest (tâches de fond), OpenAI Agents SDK avec un modèle Gemini, ImageKit, un service de publication derrière une interface commune
 
 ## Lancer le projet
 

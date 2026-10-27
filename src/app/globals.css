@@ -1,26 +1,61 @@
 @import "tailwindcss";
 
+/* Couleurs de docs/DESIGN.md. Thème Jour par défaut, Nuit si le système est en mode sombre.
+   Le bouton Jour/Nuit arrive au chapitre 6 ; le thème complet (shadcn) au chapitre 4. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --fond: #ece6da;
+  --surface: #faf7f1;
+  --surface-2: #ece6da;
+  --encre: #1d1a16;
+  --secondaire: #6b6358;
+  --filet: #dcd3c3;
+  --accent: #e6e05a;
+  --succes: #2f7a4a;
+  --erreur: #b5402c;
+  --inactif: #b9af9f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --fond: #161929;
+    --surface: #1f2338;
+    --surface-2: #262b44;
+    --encre: #ece8df;
+    --secondaire: #a3a6bf;
+    --filet: #33395a;
+    --succes: #5cc08a;
+    --erreur: #f0705c;
+    --inactif: #5b6080;
   }
 }
 
+@theme inline {
+  --color-fond: var(--fond);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-encre: var(--encre);
+  --color-secondaire: var(--secondaire);
+  --color-filet: var(--filet);
+  --color-accent: var(--accent);
+  --color-succes: var(--succes);
+  --color-erreur: var(--erreur);
+  --color-inactif: var(--inactif);
+  /* Couleurs fixes du thème Nuit, pour les zones toujours de nuit (bureau de la page de connexion). */
+  --color-nuit-fond: #161929;
+  --color-nuit-encre: #ece8df;
+  --color-nuit-secondaire: #a3a6bf;
+  --font-sans: var(--font-schibsted);
+  --font-mono: var(--font-jetbrains);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--fond);
+  color: var(--encre);
+  font-family: var(--font-sans), sans-serif;
+}
+
+/* Focus clavier toujours visible (DESIGN.md, accessibilité). */
+:focus-visible {
+  outline: 2px solid var(--encre);
+  outline-offset: 2px;
 }

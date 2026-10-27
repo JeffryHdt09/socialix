@@ -172,6 +172,13 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 - **Cron toutes les 15 min** : une tâche d'agent peut démarrer jusqu'à 15 min en retard. Ce n'est pas grave pour la publication, dont l'heure est gérée par Blotato.
 - **ImageKit** : transformations IA en bêta, paramètres exacts à vérifier au chapitre 13.
 
+- **Better Auth 1.7 : outil en ligne de commande** : il s’appelle `auth` (`npx auth generate`), l’ancien `@better-auth/cli` est bloqué en 1.4. Il régénère `src/db/auth-schema.ts` : ne pas le modifier à la main, puis `npm run db:generate` et `db:migrate`.
+- **Alertes `npm audit` (esbuild, 4 modérées)** : elles viennent de `drizzle-kit`, un outil de développement qui n’est pas dans l’application en production. Risque accepté : pas d’`audit fix --force`, qui casserait les versions. À revérifier à chaque mise à jour de `drizzle-kit`.
+- **Supabase et RLS** : les tables du schéma `public` sont exposées par la Data API de Supabase, que nous n’utilisons pas. Chaque nouvelle table doit activer RLS sans règle (voir `drizzle/0001_enable-rls.sql`). Notre serveur, propriétaire des tables, n’est pas concerné.
+- **Production serverless** : passer au Transaction pooler (port 6543) et ajouter `prepare: false` dans `src/db/index.ts` (chapitre 18).
+- **« Mot de passe oublié »** : à ajouter quand un service d’envoi d’e-mails existera (chapitre 18 ou 19). Better Auth sait le faire, il lui faut une fonction `sendResetPassword`. Même chose pour la vérification de l’e-mail.
+- **Google OAuth en production** : ajouter l’adresse du site dans les origines autorisées et l’URI de rappel `https://…/api/auth/callback/google` (chapitre 18). Application en mode « test » : seuls les utilisateurs tests peuvent se connecter ; passer en production avant d’ouvrir au public.
+
 ## 9. Avancement
 
 - [x] Squelette Next.js 16.4.3 généré dans `socialix` (TypeScript, Tailwind v4, ESLint, `src/`, App Router)
@@ -183,6 +190,8 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 - [ ] Fiches des 12 écrans rédigées → `docs/PAGES.md` — **en attente de validation**
 - [x] Personnages pixel des agents + décor de l'atelier jour/nuit (`public/agents/`, `public/office/`)
 - [x] **Chapitre 1** : Hello world, `CLAUDE.md`, `.claude/agents/quick-helper.md`, `.gitignore` (fichiers tiers exclus), lint + build OK, premier commit `f492b9a`
-- [ ] Phase 1 : Ch. 2 · [ ] 3 · [ ] 4 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
+- [x] **Chapitre 2** : dépôt public GitHub, CodeRabbit, première pull request fusionnée (n° 1)
+- [x] **Chapitre 3** : Supabase (PostgreSQL 17) + Drizzle + Better Auth : migrations `0000_auth` et `0001_enable-rls`, pages `/sign-in` et `/sign-up` (règles de mot de passe CNIL), connexion Google, `/dashboard` protégé (proxy + `verifySession`)
+- [ ] Phase 1 : [ ] 4 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)
