@@ -26,13 +26,22 @@ export function SignInForm({ googleEnabled, googleFailed }: Props) {
     setError(null);
     setPending(true);
 
-    // Appelle POST /api/auth/sign-in/email. En cas de succès, Better Auth pose le cookie de session.
-    const { error } = await authClient.signIn.email({ email, password });
+    try {
+      // Appelle POST /api/auth/sign-in/email. En cas de succès, Better Auth pose le cookie de session.
+      const { error } = await authClient.signIn.email({ email, password });
 
-    if (error) {
-      // Volontairement le même message si l'e-mail ou le mot de passe est faux :
-      // on ne dit pas à un inconnu quelles adresses ont un compte.
-      setError(authErrorMessage(error));
+      if (error) {
+        // Volontairement le même message si l'e-mail ou le mot de passe est faux :
+        // on ne dit pas à un inconnu quelles adresses ont un compte.
+        setError(authErrorMessage(error));
+        setPending(false);
+        return;
+      }
+    } catch {
+      // Réseau coupé : l'appel lève une exception au lieu de renvoyer { error }.
+      // pending n'est pas remis à false dans un finally : après un succès, le bouton reste
+      // désactivé pendant la navigation.
+      setError(authErrorMessage({}));
       setPending(false);
       return;
     }

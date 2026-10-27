@@ -36,12 +36,19 @@ export function SignUpForm({ googleEnabled, googleFailed }: Props) {
     }
 
     setPending(true);
-    // Appelle POST /api/auth/sign-up/email : crée le compte et ouvre directement une session.
-    const { error } = await authClient.signUp.email({ name: name.trim(), email, password });
+    try {
+      // Appelle POST /api/auth/sign-up/email : crée le compte et ouvre directement une session.
+      const { error } = await authClient.signUp.email({ name: name.trim(), email, password });
 
-    if (error) {
-      setEmailTaken(isEmailTaken(error));
-      setError(authErrorMessage(error));
+      if (error) {
+        setEmailTaken(isEmailTaken(error));
+        setError(authErrorMessage(error));
+        setPending(false);
+        return;
+      }
+    } catch {
+      // Réseau coupé : on réactive le bouton et on affiche le message générique.
+      setError(authErrorMessage({}));
       setPending(false);
       return;
     }
