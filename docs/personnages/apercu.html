@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aperçu des personnages</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;700&family=Pixelify+Sans:wght@500&display=swap">
+<style>
+  body { margin: 0; font-family: 'Schibsted Grotesk', sans-serif; background: #ECE6DA; color: #1D1A16; }
+  h1 { margin: 0; padding: 32px 32px 8px; font-size: 32px; }
+  p.intro { margin: 0; padding: 0 32px 24px; color: #6B6358; }
+  section { padding: 24px 32px 32px; }
+  section.nuit { background: #161929; color: #ECE8DF; }
+  h2 { margin: 0 0 16px; font-size: 20px; }
+  .row { display: flex; flex-wrap: wrap; gap: 20px; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  figure img.big { width: 160px; height: 160px; }
+  figure img.small { width: 64px; height: 64px; }
+  .tag { font-family: 'Pixelify Sans', sans-serif; font-size: 14px; padding: 3px 8px; border-radius: 4px; background: #1D1A16; color: #FAF7F1; }
+  .nuit .tag { background: #ECE8DF; color: #161929; }
+  .pair { display: flex; gap: 8px; align-items: flex-end; }
+  figcaption { font-size: 13px; opacity: .75; }
+</style>
+</head>
+<body>
+<h1>Personnages des agents</h1>
+<p class="intro">Générés par <code>scripts/sprites/build-agents.mjs</code>. Grand format : au travail (animé). Petit format : au repos et portrait.</p>
+
+<section class="jour">
+  <h2>Thème Jour</h2>
+  <div class="row">
+    <figure><span class="tag">MAÎTRE</span><img class="big" src="../../public/agents/maitre-working.svg" alt=""><div class="pair"><img class="small" src="../../public/agents/maitre-idle.svg" alt=""><img class="small" src="../../public/agents/maitre-portrait.svg" alt=""></div></figure>
+    <figure><span class="tag">RECHERCHE</span><img class="big" src="../../public/agents/recherche-working.svg" alt=""><div class="pair"><img class="small" src="../../public/agents/recherche-idle.svg" alt=""><img class="small" src="../../public/agents/recherche-portrait.svg" alt=""></div></figure>
+    <figure><span class="tag">CRÉATEUR</span><img class="big" src="../../public/agents/createur-working.svg" alt=""><div class="pair"><img class="small" src="../../public/agents/createur-idle.svg" alt=""><img class="small" src="../../public/agents/createur-portrait.svg" alt=""></div></figure>
+    <figure><span class="tag">PLANIFICATEUR</span><img class="big" src="../../public/agents/planificateur-working.svg" alt=""><div class="pair"><img class="small" src="../../public/agents/planificateur-idle.svg" alt=""><img class="small" src="../../public/agents/planificateur-portrait.svg" alt=""></div></figure>
+    <figure><span class="tag">ANALYTIQUE</span><img class="big" src="../../public/agents/analytique-working.svg" alt=""><div class="pair"><img class="small" src="../../public/agents/analytique-idle.svg" alt=""><img class="small" src="../../public/agents/analytique-portrait.svg" alt=""></div></figure>
+    <figure><span class="tag">VIDÉASTE</span><img class="big" src="../../public/agents/videaste-working.svg" alt=""><div class="pair"><img class="small" src="../../public/agents/videaste-idle.svg" alt=""><img class="small" src="../../public/agents/videaste-portrait.svg" alt=""></div></figure>
+  </div>
+</section>
+
+<section class="nuit">
+  <h2>Thème Nuit</h2>
+  <div class="row">
+    <figure><span class="tag">MAÎTRE</span><img class="big" src="../../public/agents/maitre-working.svg" alt=""></figure>
+    <figure><span class="tag">RECHERCHE</span><img class="big" src="../../public/agents/recherche-working.svg" alt=""></figure>
+    <figure><span class="tag">CRÉATEUR</span><img class="big" src="../../public/agents/createur-working.svg" alt=""></figure>
+    <figure><span class="tag">PLANIFICATEUR</span><img class="big" src="../../public/agents/planificateur-working.svg" alt=""></figure>
+    <figure><span class="tag">ANALYTIQUE</span><img class="big" src="../../public/agents/analytique-working.svg" alt=""></figure>
+    <figure><span class="tag">VIDÉASTE</span><img class="big" src="../../public/agents/videaste-working.svg" alt=""></figure>
+  </div>
+</section>
+</body>
+</html>

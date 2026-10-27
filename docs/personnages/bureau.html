@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aperçu du bureau</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;700&family=Pixelify+Sans:wght@500&display=swap">
+<style>
+  body { margin: 0; font-family: 'Schibsted Grotesk', sans-serif; background: #ECE6DA; color: #1D1A16; }
+  .wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 24px; padding: 24px; }
+  h2 { margin: 0 0 10px; font-size: 18px; }
+  /* Le bureau : l'image de fond garde ses proportions, les postes sont placés en % */
+  .office { position: relative; width: 100%; aspect-ratio: 1376 / 768; background-size: cover; border-radius: 16px; overflow: hidden; }
+  .seat { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .seat img { width: 100%; display: block; }
+  .tag { font-family: 'Pixelify Sans', sans-serif; font-size: 12px; padding: 2px 6px; border-radius: 4px; background: #1D1A16; color: #FAF7F1; white-space: nowrap; }
+  .tag.busy { background: #E6E05A; color: #1D1A16; }
+  .nuit .tag { background: #ECE8DF; color: #161929; }
+  .nuit .tag.busy { background: #E6E05A; color: #161929; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section>
+    <h2>Jour</h2>
+    <div class="office jour" style="background-image: url('../../public/office/atelier-jour.webp');"></div>
+  </section>
+  <section>
+    <h2>Nuit</h2>
+    <div class="office nuit" style="background-image: url('../../public/office/atelier-nuit.webp');"></div>
+  </section>
+</div>
+<script>
+  // Copie de public/office/atelier.json (un fichier local ne peut pas être lu par fetch depuis file://)
+  const layout = {
+    seats: [
+      { agent: "maitre", label: "MAÎTRE", x: 50, y: 52, width: 13 },
+      { agent: "recherche", label: "RECHERCHE", x: 31, y: 63, width: 13 },
+      { agent: "createur", label: "CRÉATEUR", x: 69, y: 63, width: 13, busy: true },
+      { agent: "planificateur", label: "PLANIFICATEUR", x: 39, y: 81, width: 13 },
+      { agent: "analytique", label: "ANALYTIQUE", x: 61, y: 81, width: 13 },
+    ],
+  };
+  for (const office of document.querySelectorAll(".office")) {
+    for (const s of layout.seats) {
+      const seat = document.createElement("div");
+      seat.className = "seat";
+      seat.style.left = s.x + "%";
+      seat.style.top = s.y + "%";
+      seat.style.width = s.width + "%";
+      const state = s.busy ? "working" : "idle";
+      seat.innerHTML = `<span class="tag${s.busy ? " busy" : ""}">${s.label}</span><img src="../../public/agents/${s.agent}-${state}.svg" alt="">`;
+      office.appendChild(seat);
+    }
+  }
+</script>
+</body>
+</html>

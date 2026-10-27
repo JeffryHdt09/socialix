@@ -1,0 +1,16 @@
+{
+  "id": "atelier",
+  "name": "Atelier bois",
+  "background": {
+    "jour": "/office/atelier-jour.webp",
+    "nuit": "/office/atelier-nuit.webp"
+  },
+  "aspectRatio": "1376 / 768",
+  "seats": [
+    { "agent": "maitre", "x": 50, "y": 52, "width": 13 },
+    { "agent": "recherche", "x": 31, "y": 63, "width": 13 },
+    { "agent": "createur", "x": 69, "y": 63, "width": 13 },
+    { "agent": "planificateur", "x": 39, "y": 81, "width": 13 },
+    { "agent": "analytique", "x": 61, "y": 81, "width": 13 }
+  ]
+}
