@@ -20,7 +20,7 @@ Application de gestion de réseaux sociaux par une équipe d'agents IA : un agen
 ## Stack
 
 - Next.js 16 (App Router, `src/`), React 19, TypeScript, Tailwind CSS v4, ESLint. shadcn/ui à partir du chapitre 4.
-- À venir : Drizzle ORM + PostgreSQL et auth (InsForge), Inngest, OpenAI Agents SDK avec un modèle **Gemini**, ImageKit, service de publication derrière une interface « publicateur ».
+- À venir : Drizzle ORM + PostgreSQL et stockage (Supabase), auth (Better Auth, comptes dans notre base), Inngest, OpenAI Agents SDK avec un modèle **Gemini**, ImageKit, service de publication derrière une interface « publicateur ».
 
 ## Commandes
 

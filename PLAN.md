@@ -40,9 +40,9 @@ Navigateur (React / Next.js App Router)
    │  /sign-in · /campaigns/new · /dashboard/[campaignId]/{overview, agents, posts, calendar, analytics, accounts, settings}
    ▼
 Serveur Next.js (Server Components, Server Actions, Route Handlers)
-   ├── Auth ............ InsForge
-   ├── Base ............ PostgreSQL hébergé par InsForge, schéma + requêtes via Drizzle ORM
-   ├── Stockage ........ InsForge Storage (logos, images générées : bucket agent-files)
+   ├── Auth ............ Better Auth (bibliothèque dans l'app, comptes rangés dans NOTRE base)
+   ├── Base ............ PostgreSQL standard hébergé par Supabase, schéma + requêtes via Drizzle ORM
+   ├── Stockage ........ Supabase Storage, compatible S3 (logos, images générées : bucket agent-files)
    ├── Chat agents ..... OpenAI Agents SDK (@openai/agents + zod) : un agent par rôle
    │                     modèle : Gemini, branché via @openai/agents-extensions + ai + @ai-sdk/google
    └── /api/inngest .... point d'entrée des tâches de fond
@@ -64,6 +64,7 @@ Agents (OpenAI Agents SDK)                 Outils (tools)
 **Comment ça s'enchaîne :** l'utilisateur écrit à l'agent maître. Celui-ci produit un **plan** et crée des **tâches** en base (avec dépendances : le Créateur attend la Recherche). Le cron Inngest repère les tâches dues, `execute-agent-task` lance l'agent concerné avec ses outils, enregistre le résultat et rend compte au maître. L'interface lit l'état en base pour afficher la progression.
 
 **Ce que la vidéo utilise, et ce que nous en faisons :**
+- **InsForge** (auth, base, stockage) : **remplacé** par Better Auth + PostgreSQL et stockage Supabase (décision D8), pour ne pas dépendre d'un service propriétaire.
 - **OpenAI Agents SDK** pour les agents : repris tel quel. Inngest ne sert qu'aux tâches de fond.
 - **Modèles OpenAI avec tokens gratuits quotidiens** : **remplacés par Gemini** (offre gratuite d'AI Studio, sans carte bancaire), l'offre OpenAI n'étant plus disponible. Le SDK reste le même, seul le modèle branché change (décision D1).
 - **Gemini** pour générer les images, **ImageKit** pour les retoucher : repris. Une seule clé Google sert donc aux agents et aux images.
@@ -76,7 +77,7 @@ Agents (OpenAI Agents SDK)                 Outils (tools)
 
 | Table | Colonnes principales | Ch. |
 |---|---|---|
-| `users` | id, insforge_user_id, email, name, image_url, created_at | 3 |
+| `user`, `session`, `account`, `verification` | Tables de Better Auth (générées par son CLI) : comptes, sessions en base, liaisons Google, codes de vérification | 3 |
 | `campaigns` | id, user_id, name, icon_url, office (`modern` / `wooden`), created_at | 5 |
 | `agent_messages` | id, campaign_id, agent, role (`user` / `assistant`), content, created_at — l'historique du chat | 9 |
 | `agent_plans` | id, campaign_id, request, plan (JSON), status, created_at | 10 |
@@ -98,9 +99,9 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 |---|---|---|---|
 | 1 | **Setup** | Structure Next.js, App Router, `CLAUDE.md`, sous-agents Claude Code | « Hello world » affiché, `CLAUDE.md` + `.claude/agents/quick-helper.md` écrits, premier commit |
 | 2 | **GitHub + CodeRabbit** | Remote Git, branches, pull requests, revue automatisée | Dépôt GitHub créé, CodeRabbit commente une PR |
-| 3 | **Base + auth (InsForge)** | PostgreSQL, Drizzle (schéma, `db:push`, Drizzle Studio), sessions, OAuth Google | Connexion Google + email OK, utilisateur enregistré au 1er login, `/dashboard` refusé si non connecté |
+| 3 | **Base + auth (Supabase + Better Auth)** | ORM et PostgreSQL, Drizzle (schéma, migrations, Drizzle Studio), sessions en base, cookies sécurisés, OAuth Google | Connexion Google + e-mail OK, compte enregistré dans **notre** base, `/dashboard` refusé côté serveur si non connecté |
 | 4 | **Système de design** *(ajout)* | Variables CSS, thème shadcn/ui, thèmes clair/sombre, composants accessibles | shadcn installé avec les couleurs, polices et arrondis de `docs/DESIGN.md`, bascule Jour/Nuit fonctionnelle |
-| 5 | **Création de campagne** | Formulaire en 2 étapes, Server Actions, validation, upload | Campagne créée (nom, logo ≤ 3 Mo vers InsForge Storage, bureau), redirection si aucune campagne |
+| 5 | **Création de campagne** | Formulaire en 2 étapes, Server Actions, validation, upload | Campagne créée (nom, logo ≤ 3 Mo vers Supabase Storage, bureau), redirection si aucune campagne |
 | 6 | **Layout du dashboard** | Layouts imbriqués, route dynamique `[campaignId]`, navigation | Sidebar repliable (icônes par défaut), sélecteur de campagne, header, pages vides propres |
 | 7 | **Vue d'ensemble + bureau isométrique** | Agrégations SQL, positionnement en %, animation CSS, composant réutilisable | Statut de campagne (états vides), bureau d'après `office-studio/*.json`, agents animés, étiquette nom + emoji, positions stables au redimensionnement |
 | 8 | **Page Agents (interface)** | Composition de composants, onglets, panneau latéral | Barre des agents, onglets Chat / Historique / Réglages (factices), clic sur un agent dans le bureau de la vue d'ensemble → panneau de chat à gauche, **même composant partout** |
@@ -134,7 +135,8 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 |---|---|---|
 | GitHub | 2 | Dépôt public, création et pull requests avec la CLI `gh` |
 | CodeRabbit | 2 | Connexion avec GitHub. Vérifier l'offre gratuite à l'inscription |
-| InsForge | 3 | Projet + chaîne de connexion PostgreSQL. La vidéo mentionne 50 $ de crédit via aiperks |
+| Supabase | 3 | Offre gratuite : projet PostgreSQL + stockage. Projet mis en pause après 7 jours de **faible** activité (e-mail d'avertissement une semaine avant ; restaurable pendant un an, données et réglages conservés). On n'utilise **pas** son système de comptes |
+| Google Cloud Console | 3 | Création d'un identifiant OAuth (gratuit) pour « Continuer avec Google » |
 | Google AI Studio (Gemini) | 9 | Clé API gratuite, sans carte. Sert aux agents (ch. 9) et aux images (ch. 12). Les données de l'offre gratuite peuvent servir à Google : rien de sensible |
 | Inngest | 11 | Serveur de dev local gratuit (`npx inngest-cli dev`). Offre gratuite : 50 000 exécutions/mois |
 | ImageKit | 13 | Offre gratuite : 25 Go/mois, 650 unités IA. Il faut l'URL endpoint + la clé privée. Fonctions IA en bêta |
@@ -155,16 +157,17 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 | D5 | Quel service de publication ? (ch. 14) | Blotato (payant) | **Buffer** (gratuit, mais réservé à un usage personnel : convient au développement et à mes propres comptes) · **API Instagram de Meta** (gratuite, vraies statistiques, mise en place plus longue, validation Meta nécessaire pour publier sur les comptes d'autres personnes) · **Blotato** (29 $/mois, 20 comptes, gère la vidéo). **Tendance :** Buffer pendant le développement, Blotato dès qu'il faut gérer plusieurs comptes. Grâce à l'interface « publicateur », le changement ne touche qu'un fichier. À décider avant le chapitre 14 |
 | D6 | Dépôt GitHub public ou privé ? (ch. 2) | — | **Public**, pour que CodeRabbit fasse des revues complètes (sur un dépôt privé, l'offre gratuite ne fait que des résumés). Donc aucun secret commité, et le fichier `text` (transcription d'une vidéo tierce) ajouté à `.gitignore` |
 | D7 | Où héberger l'application ? (ch. 18) | — | À décider au chapitre 18, selon que des clients payants l'utilisent déjà ou non |
+| D8 | Auth, base et stockage (ch. 3) | InsForge, service propriétaire tout-en-un | ✅ **Décidé : Better Auth** (bibliothèque open source MIT, comptes dans notre base) + **PostgreSQL et stockage Supabase** (open source, standard). Si un hébergeur ferme : export de la base, nouvelle adresse dans `.env.local`, les comptes suivent |
 
 ## 8. Risques et points à vérifier
 
 - **Boilerplate de la vidéo introuvable** : remplacé par `create-next-app` officiel. On ajoute shadcn, Drizzle et Inngest nous-mêmes.
 - **Prompts de la vidéo indisponibles** (document Eraser) : on reconstruit chaque chapitre à partir de la transcription et de la doc officielle.
 - **Next.js 16** : version récente avec des changements. Lire `node_modules/next/dist/docs/` avant d'utiliser une API (voir `AGENTS.md`).
-- **Versions au 26/10/2026** : `@openai/agents` et `@openai/agents-extensions` 0.21.0 (pas encore en 1.0, l'API peut bouger), `ai` 7.0.153, `@ai-sdk/google` 4.0.105, `zod` 4.6.7, `inngest` 4.26.0, `@insforge/sdk` 1.5.2, `@google/genai` 2.31.0, `@imagekit/next` 2.1.6, `@e2b/desktop` 2.5.0. On revérifie au moment d'installer.
+- **Versions au 26/10/2026** : `@openai/agents` et `@openai/agents-extensions` 0.21.0 (pas encore en 1.0, l'API peut bouger), `ai` 7.0.153, `@ai-sdk/google` 4.0.105, `zod` 4.6.7, `inngest` 4.26.0, `better-auth` 1.7.14, `drizzle-orm` 0.45.4, `@google/genai` 2.31.0, `@imagekit/next` 2.1.6, `@e2b/desktop` 2.5.0. On revérifie au moment d'installer.
 - **Gemini à la place d'OpenAI** : la vidéo s'appuie sur l'outil de recherche web *hébergé par OpenAI*, qui ne marche pas avec Gemini. Au chapitre 12, on écrira notre propre outil de recherche, ou on utilisera la recherche Google intégrée à Gemini si elle se combine avec nos autres outils (à vérifier).
 - **Quotas de l'offre gratuite Gemini** : limites par minute et par jour (chiffres différents selon les sources). Un plan de l'agent maître déclenche plusieurs appels : on surveillera les erreurs 429 (« trop de requêtes ») et on limitera la concurrence dans Inngest.
-- **InsForge** : deux versions de la doc ne concordent pas (SDK vs ancienne API REST). On suit le SDK installé.
+- **Next.js 16 et l'auth** : `middleware.ts` est déprécié et renommé `proxy.ts`. Next recommande de vérifier la session **côté serveur** (layouts, actions) plutôt que de reposer uniquement sur le proxy. Better Auth s'utilise ainsi.
 - **Blotato** : base `https://backend.blotato.com/v2`, en-tête `blotato-api-key`, `POST /posts` avec `scheduledTime`, gestion via `/schedules`. **À confirmer dans la doc officielle** : le format de `scheduledTime`, la liste des comptes, le déplacement d'un post déjà programmé, et API REST ou MCP pour les agents.
 - **Cron toutes les 15 min** : une tâche d'agent peut démarrer jusqu'à 15 min en retard. Ce n'est pas grave pour la publication, dont l'heure est gérée par Blotato.
 - **ImageKit** : transformations IA en bêta, paramètres exacts à vérifier au chapitre 13.
