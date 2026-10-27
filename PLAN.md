@@ -135,7 +135,7 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 |---|---|---|
 | GitHub | 2 | Dépôt public, création et pull requests avec la CLI `gh` |
 | CodeRabbit | 2 | Connexion avec GitHub. Vérifier l'offre gratuite à l'inscription |
-| Supabase | 3 | Offre gratuite : projet PostgreSQL + stockage. Projet mis en pause après une semaine d'inactivité (un clic pour relancer, données conservées). On n'utilise **pas** son système de comptes |
+| Supabase | 3 | Offre gratuite : projet PostgreSQL + stockage. Projet mis en pause après 7 jours de **faible** activité (e-mail d'avertissement une semaine avant ; restaurable pendant un an, données et réglages conservés). On n'utilise **pas** son système de comptes |
 | Google Cloud Console | 3 | Création d'un identifiant OAuth (gratuit) pour « Continuer avec Google » |
 | Google AI Studio (Gemini) | 9 | Clé API gratuite, sans carte. Sert aux agents (ch. 9) et aux images (ch. 12). Les données de l'offre gratuite peuvent servir à Google : rien de sensible |
 | Inngest | 11 | Serveur de dev local gratuit (`npx inngest-cli dev`). Offre gratuite : 50 000 exécutions/mois |
