@@ -1,0 +1,22 @@
+# Configuration de CodeRabbit (relecture automatique des pull requests)
+# Référence : https://docs.coderabbit.ai/reference/configuration
+language: "fr-FR"
+tone_instructions: "Explique chaque remarque simplement, comme à un développeur qui apprend : le problème, pourquoi c'est un problème, et la correction proposée."
+
+reviews:
+  # « assertive » : relecture plus poussée que le réglage par défaut (« chill »)
+  profile: "assertive"
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    drafts: false
+  # Fichiers générés ou binaires : rien à relire
+  path_filters:
+    - "!public/agents/**"
+    - "!public/office/**"
+    - "!package-lock.json"
+  path_instructions:
+    - path: "src/**"
+      instructions: "Vérifie le respect de docs/DESIGN.md (un seul accent #E6E05A qui signale, bouton principal encre, pas de dégradé ni d'emoji dans l'interface), l'accessibilité (vrais boutons et liens, labels, contraste, focus visible), l'absence de secret dans le code et que les textes de l'interface sont en français."
+    - path: "**/*.md"
+      instructions: "Le dépôt est public : signale toute information personnelle (chemin local, matériel, adresse e-mail, stratégie commerciale ou autres projets de l'auteur)."
