@@ -13,7 +13,7 @@ reviews:
   # Fichiers générés ou binaires : rien à relire
   path_filters:
     - "!public/agents/**"
-    - "!public/office/**"
+    - "!public/office/*.webp"
     - "!package-lock.json"
   path_instructions:
     - path: "src/**"
