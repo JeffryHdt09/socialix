@@ -6,7 +6,7 @@ Application de gestion de réseaux sociaux par une équipe d'agents IA : un agen
 
 ## Sources de vérité (à lire avant de proposer quoi que ce soit)
 
-- `PLAN.md` : chapitres, décisions (D1 à D7), avancement. Toujours caler le travail sur le chapitre en cours.
+- `PLAN.md` : chapitres, décisions (D1 à D8), avancement. Toujours caler le travail sur le chapitre en cours.
 - `docs/DESIGN.md` : couleurs, polices, formes, états, mouvement, personnages et décor.
 - `docs/PAGES.md` : la fiche de chaque écran (contenu, états, interactions).
 
@@ -20,19 +20,25 @@ Application de gestion de réseaux sociaux par une équipe d'agents IA : un agen
 ## Stack
 
 - Next.js 16 (App Router, `src/`), React 19, TypeScript, Tailwind CSS v4, ESLint. shadcn/ui à partir du chapitre 4.
-- À venir : Drizzle ORM + PostgreSQL et stockage (Supabase), auth (Better Auth, comptes dans notre base), Inngest, OpenAI Agents SDK avec un modèle **Gemini**, ImageKit, service de publication derrière une interface « publicateur ».
+- Base et auth (chapitre 3) : Drizzle ORM + PostgreSQL sur Supabase (Session pooler), Better Auth (e-mail et mot de passe, Google ; comptes dans notre base). Contrôle d’accès : `src/proxy.ts` (cookie, optimiste) puis `verifySession()` de `src/lib/dal.ts` dans chaque page privée.
+- À venir : stockage (Supabase Storage), Inngest, OpenAI Agents SDK avec un modèle **Gemini**, ImageKit, service de publication derrière une interface « publicateur ».
 
 ## Commandes
 
 - `npm run dev` : serveur de développement (http://localhost:3000)
 - `npm run lint` : vérification ESLint
 - `npm run build` : build de production (doit passer avant chaque PR)
+- `npm run db:generate` : écrit une migration SQL dans `drizzle/` à partir de `src/db/schema.ts`
+- `npm run db:migrate` : applique les migrations sur la base (`DATABASE_URL`)
+- `npm run db:studio` : interface web pour voir les tables
+- `npx auth generate --config src/lib/auth.ts --output src/db/auth-schema.ts --yes` : régénère les tables de Better Auth
 - `node scripts/sprites/build-agents.mjs` : régénère les personnages des agents dans `public/agents/`
 
 ## Règles
 
 - **Next.js 16 a des changements** : lire le guide concerné dans `node_modules/next/dist/docs/` avant d'utiliser une API (voir `AGENTS.md`).
 - **Secrets** uniquement dans `.env.local` (ignoré par Git). Jamais de clé dans le code, un commit ou un log.
+- **Base de données** : toute nouvelle table active RLS dans sa migration (Supabase expose sinon la table par sa Data API). Mots de passe : règles dans `src/lib/password-rules.ts`, contrôlées côté serveur.
 - **Interface en français.** Pas de faux contenu : des emplacements signalés entre crochets (`[Prénom]`) ou un état vide honnête.
 - **Design** : respecter `docs/DESIGN.md` (un seul accent `#E6E05A` qui signale, bouton principal encre, hachures = pas encore confirmé, pas de dégradés ni d'emojis dans l'interface).
 - **Données clients** : jamais dans une offre gratuite qui s'en sert pour l'entraînement (offre gratuite de Gemini comprise).

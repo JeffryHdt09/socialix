@@ -1,7 +1,7 @@
 # Plan d'implémentation — Socialix
 
 > Document vivant. On le relit au début de chaque chapitre et on coche ce qui est fini.
-> Dernière mise à jour : 26/10/2026 (v3 : agents sur Gemini, l'offre de tokens OpenAI gratuits n'étant plus disponible).
+> Dernière mise à jour : 28/10/2026 (v4 : décision D9 sur les modèles avec repli, section « Équipes d'agents futures »). v3 : agents sur Gemini, l'offre de tokens OpenAI gratuits n'étant plus disponible.
 
 ## 1. Objectif
 
@@ -127,6 +127,17 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 
 **Phase 3 et le rendu vidéo :** le rendu (HyperFrames + FFmpeg) se fait dans un **atelier de rendu séparé** que Socialix appelle. Il demande un navigateur sans interface et FFmpeg, donc il ne peut pas tourner sur un hébergement web classique. Les clips génératifs passent par l'**API Gemini (Veo)**, jamais par l'automatisation d'une interface web.
 
+### Équipes d'agents futures (après le ch. 15, hors critère de fin)
+
+Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. Chaque équipe aurait son propre Maître, ou partagerait celui de l'équipe marketing.
+
+- **Prépare dès les ch. 9–10 : un agent est une donnée** (nom, rôle, instructions, liste d'outils, liste de modèles, voir D9). Ajouter un agent = ajouter une ligne, sans réécrire le moteur.
+- **Prospection :** *Chasseur* (trouve des cibles via sources publiques et API officielles) · *Qualifieur* (note chaque piste) · *Rédacteur d'approche* (message personnalisé, **relecture humaine avant tout envoi**) · *Relance* (suivi à J+3, J+7…). Prévoit une table `leads` (statut : à contacter, contacté, répondu, gagné) comme mini-CRM.
+- **Veille et recherche :** *Veilleur concurrence* (ce que publient les concurrents) · *Tendances et SEO* (mots-clés, sujets qui montent).
+- **Vente de produits digitaux :** *Page de vente* (textes, variantes) · *Support* (FAQ sur une base de connaissances) · *Séquences e-mail* (accueil, relance, promotion). La vente elle-même demande un service de paiement et de livraison (type Stripe, Lemon Squeezy ou Gumroad) : c'est un module à part, pas un agent.
+- **Qualité :** *Relecteur / Critique*, qui contrôle chaque production avant la relecture humaine (ton de la marque, affirmations invérifiables, orthographe, conformité). C'est l'agent le plus rentable à ajouter en premier.
+- **Limites à respecter :** pas de collecte de données sur les réseaux sociaux contre leurs règles, jamais de connexion à un compte avec un navigateur, et prospection par e-mail encadrée en B2B (désinscription, motif légitime, pas d'envoi de masse) : à vérifier avant le premier envoi.
+
 **Pourquoi E2B passe en dernier et en option :** dans la vidéo, il arrive entre Inngest et les outils. Mais c'est le morceau le plus lourd (VM, coûts, sécurité des sessions), la démo est elle-même lente et bancale, et l'outil de recherche web suffit à l'agent Recherche pour le critère de fin.
 
 ## 6. Comptes à créer (au moment où on en a besoin)
@@ -138,6 +149,7 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 | Supabase | 3 | Offre gratuite : projet PostgreSQL + stockage. Projet mis en pause après 7 jours de **faible** activité (e-mail d'avertissement une semaine avant ; restaurable pendant un an, données et réglages conservés). On n'utilise **pas** son système de comptes |
 | Google Cloud Console | 3 | Création d'un identifiant OAuth (gratuit) pour « Continuer avec Google » |
 | Google AI Studio (Gemini) | 9 | Clé API gratuite, sans carte. Sert aux agents (ch. 9) et aux images (ch. 12). Les données de l'offre gratuite peuvent servir à Google : rien de sensible |
+| OpenRouter *(optionnel, D9)* | 9 | Une seule clé pour de nombreux modèles, dont des modèles gratuits (`:free`) et DeepSeek. Un achat unique de 10 $ de crédits fait passer le quota gratuit de 50 à 1 000 requêtes/jour. Les modèles gratuits peuvent journaliser les requêtes : rien de sensible |
 | Inngest | 11 | Serveur de dev local gratuit (`npx inngest-cli dev`). Offre gratuite : 50 000 exécutions/mois |
 | ImageKit | 13 | Offre gratuite : 25 Go/mois, 650 unités IA. Il faut l'URL endpoint + la clé privée. Fonctions IA en bêta |
 | Service de publication | 14 | Selon D5 : Buffer (gratuit, API incluse) · app développeur Meta + compte Instagram professionnel (gratuit) · Blotato (29 $/mois, API absente de l'essai de 7 jours) |
@@ -157,6 +169,7 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 | D5 | Quel service de publication ? (ch. 14) | Blotato (payant) | **Buffer** (gratuit, mais réservé à un usage personnel : convient au développement et à mes propres comptes) · **API Instagram de Meta** (gratuite, vraies statistiques, mise en place plus longue, validation Meta nécessaire pour publier sur les comptes d'autres personnes) · **Blotato** (29 $/mois, 20 comptes, gère la vidéo). **Tendance :** Buffer pendant le développement, Blotato dès qu'il faut gérer plusieurs comptes. Grâce à l'interface « publicateur », le changement ne touche qu'un fichier. À décider avant le chapitre 14 |
 | D6 | Dépôt GitHub public ou privé ? (ch. 2) | — | **Public**, pour que CodeRabbit fasse des revues complètes (sur un dépôt privé, l'offre gratuite ne fait que des résumés). Donc aucun secret commité, et le fichier `text` (transcription d'une vidéo tierce) ajouté à `.gitignore` |
 | D7 | Où héberger l'application ? (ch. 18) | — | À décider au chapitre 18, selon que des clients payants l'utilisent déjà ou non |
+| D9 | Quels modèles, et comment alterner entre les quotas ? (ch. 9, étendu au ch. 12) | Un seul fournisseur (modèles OpenAI) | **Trois niveaux avec repli**, branchés par l'adaptateur AI SDK déjà prévu (D1), donc un seul fichier à changer : **Maître** (plan, sortie structurée, appels d'outils fiables) = modèle solide (Gemini ou DeepSeek « Pro ») · **Agents de travail** (rédaction, résumés) = modèle très bon marché (DeepSeek « Flash », ordre de grandeur 0,07 $ / 0,18 $ par million de tokens) · **Secours** = modèles `:free` d'OpenRouter (20 requêtes/min ; 50/jour, ou 1 000/jour après 10 $ de crédits achetés au total) puis quota gratuit de Gemini. Les agents lisent une **liste ordonnée de modèles** (pas un modèle codé en dur) : en cas d'erreur 429 ou de modèle retiré, on passe au suivant. **Règles :** aucune donnée client sur un modèle gratuit ; chaque modèle est testé sur une tâche d'appel d'outil avant adoption. Chiffres à revérifier sur les pages officielles au moment d'ouvrir le compte |
 | D8 | Auth, base et stockage (ch. 3) | InsForge, service propriétaire tout-en-un | ✅ **Décidé : Better Auth** (bibliothèque open source MIT, comptes dans notre base) + **PostgreSQL et stockage Supabase** (open source, standard). Si un hébergeur ferme : export de la base, nouvelle adresse dans `.env.local`, les comptes suivent |
 
 ## 8. Risques et points à vérifier
@@ -169,8 +182,17 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 - **Quotas de l'offre gratuite Gemini** : limites par minute et par jour (chiffres différents selon les sources). Un plan de l'agent maître déclenche plusieurs appels : on surveillera les erreurs 429 (« trop de requêtes ») et on limitera la concurrence dans Inngest.
 - **Next.js 16 et l'auth** : `middleware.ts` est déprécié et renommé `proxy.ts`. Next recommande de vérifier la session **côté serveur** (layouts, actions) plutôt que de reposer uniquement sur le proxy. Better Auth s'utilise ainsi.
 - **Blotato** : base `https://backend.blotato.com/v2`, en-tête `blotato-api-key`, `POST /posts` avec `scheduledTime`, gestion via `/schedules`. **À confirmer dans la doc officielle** : le format de `scheduledTime`, la liste des comptes, le déplacement d'un post déjà programmé, et API REST ou MCP pour les agents.
+- **Modèles gratuits et appels d'outils (D9)** : les petits modèles et les modèles gratuits appellent parfois mal les outils ou cassent la sortie structurée, ce dont les agents dépendent. On teste chaque modèle sur une tâche précise avant de l'ajouter à la liste. La liste des modèles gratuits change vite : d'où la liste ordonnée avec repli.
+- **Abonnements « forfait fixe » à plusieurs modèles** : les offres de type « coding plan » (GLM, Kimi, MiniMax, Qwen) sont plafonnées par fenêtres de 5 heures et par semaine, et conçues pour des outils de code. Avant de les brancher sur Socialix, vérifier dans leurs conditions d'utilisation que l'usage par API depuis une application est permis. Éviter les revendeurs « illimité pour 10 $ » dont l'origine des clés n'est pas claire : coupure sans préavis et données clients exposées.
 - **Cron toutes les 15 min** : une tâche d'agent peut démarrer jusqu'à 15 min en retard. Ce n'est pas grave pour la publication, dont l'heure est gérée par Blotato.
 - **ImageKit** : transformations IA en bêta, paramètres exacts à vérifier au chapitre 13.
+
+- **Better Auth 1.7 : outil en ligne de commande** : il s’appelle `auth` (`npx auth generate`), l’ancien `@better-auth/cli` est bloqué en 1.4. Il régénère `src/db/auth-schema.ts` : ne pas le modifier à la main, puis `npm run db:generate` et `db:migrate`.
+- **Alertes `npm audit` (esbuild, 4 modérées)** : elles viennent de `drizzle-kit`, un outil de développement qui n’est pas dans l’application en production. Risque accepté : pas d’`audit fix --force`, qui casserait les versions. À revérifier à chaque mise à jour de `drizzle-kit`.
+- **Supabase et RLS** : les tables du schéma `public` sont exposées par la Data API de Supabase, que nous n’utilisons pas. Chaque nouvelle table doit activer RLS sans règle (voir `drizzle/0001_enable-rls.sql`). Notre serveur, propriétaire des tables, n’est pas concerné.
+- **Production serverless** : passer au Transaction pooler (port 6543) et ajouter `prepare: false` dans `src/db/index.ts` (chapitre 18).
+- **« Mot de passe oublié »** : à ajouter quand un service d’envoi d’e-mails existera (chapitre 18 ou 19). Better Auth sait le faire, il lui faut une fonction `sendResetPassword`. Même chose pour la vérification de l’e-mail.
+- **Google OAuth en production** : ajouter l’adresse du site dans les origines autorisées et l’URI de rappel `https://…/api/auth/callback/google` (chapitre 18). Application en mode « test » : seuls les utilisateurs tests peuvent se connecter ; passer en production avant d’ouvrir au public.
 
 ## 9. Avancement
 
@@ -183,6 +205,8 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 - [ ] Fiches des 12 écrans rédigées → `docs/PAGES.md` — **en attente de validation**
 - [x] Personnages pixel des agents + décor de l'atelier jour/nuit (`public/agents/`, `public/office/`)
 - [x] **Chapitre 1** : Hello world, `CLAUDE.md`, `.claude/agents/quick-helper.md`, `.gitignore` (fichiers tiers exclus), lint + build OK, premier commit `f492b9a`
-- [ ] Phase 1 : Ch. 2 · [ ] 3 · [ ] 4 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
+- [x] **Chapitre 2** : dépôt public GitHub, CodeRabbit, première pull request fusionnée (n° 1)
+- [x] **Chapitre 3** : Supabase (PostgreSQL 17) + Drizzle + Better Auth : migrations `0000_auth` et `0001_enable-rls`, pages `/sign-in` et `/sign-up` (règles de mot de passe CNIL), connexion Google, `/dashboard` protégé (proxy + `verifySession`)
+- [ ] Phase 1 : [ ] 4 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)
