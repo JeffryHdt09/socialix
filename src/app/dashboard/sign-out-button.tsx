@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { authClient } from "@/lib/auth-client";
+import { signOutAction } from "./actions";
 
 export function SignOutButton() {
   const router = useRouter();
@@ -14,11 +14,11 @@ export function SignOutButton() {
     setFailed(false);
     setPending(true);
     try {
-      // Supprime la session en base et efface le cookie.
-      const { error } = await authClient.signOut();
-      if (error) throw error;
+      // Action serveur : supprime la session en base, puis efface le cookie (voir actions.ts).
+      const { ok } = await signOutAction();
+      if (!ok) throw new Error("session non supprimée");
     } catch {
-      // On ne redirige qu'après un succès : sinon /sign-in retrouverait la session encore active
+      // On ne redirige qu'après un succès réel : sinon /sign-in retrouverait la session encore active
       // et renverrait vers /dashboard, alors que l'utilisateur croit être déconnecté.
       setFailed(true);
       setPending(false);
