@@ -6,7 +6,7 @@ import { AgentTabs } from "@/components/agents/agent-tabs";
 import { LiveLog } from "@/components/agents/live-log";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { AGENTS, findAgent } from "@/lib/agents";
-import { getConversation } from "@/lib/dal";
+import { getConversation, getPlans } from "@/lib/dal";
 
 export const metadata: Metadata = { title: "Agents IA · Socialix" };
 
@@ -31,6 +31,7 @@ async function AgentsContent({ params, searchParams }: Pick<PageProps<"/dashboar
   const current = findAgent(wanted) ?? AGENTS[0];
   // La conversation vient de la base ; getConversation vérifie que la campagne est bien à l'utilisateur
   const conversation = await getConversation(campaignId, current.id);
+  const plans = await getPlans(campaignId);
 
   return (
     // @container : les colonnes dépendent de la largeur de la zone (menu latéral ouvert ou replié), pas de l'écran
@@ -38,7 +39,7 @@ async function AgentsContent({ params, searchParams }: Pick<PageProps<"/dashboar
       <div className="grid gap-6 @2xl:grid-cols-[200px_minmax(0,1fr)] @4xl:grid-cols-[200px_minmax(0,1fr)_220px]">
         <AgentRoster current={current} campaignId={campaignId} />
         {/* key : changer d'agent repart sur l'onglet Discussion, sans garder l'état de l'agent précédent */}
-        <AgentTabs key={current.id} agent={current} campaignId={campaignId} initialMessages={conversation} />
+        <AgentTabs key={current.id} agent={current} campaignId={campaignId} initialMessages={conversation} initialPlans={plans} />
         <div className="@2xl:col-span-2 @4xl:col-span-1">
           <LiveLog />
         </div>

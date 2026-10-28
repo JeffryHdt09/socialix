@@ -94,6 +94,8 @@
 
 ## 5. Agents IA · ch. 8 à 12 (Ordinateur : ch. 17)
 
+> **Plans du Maître (chapitre 10)** : la carte du plan (tâches numérotées « 01 », agent, état en texte, « après 02 », consigne dépliable, « Annuler le plan » avec confirmation) s'affiche sous la réponse du Maître et dans l'onglet Tâches (tous les plans pour le Maître, uniquement ses tâches pour un agent de travail). L'état est partagé entre les deux sans rechargement.
+>
 > **Interface réalisée au chapitre 8**, **chat branché à Gemini au chapitre 9** (messages enregistrés par campagne et par agent, réponse mise en forme, erreurs et quota annoncés sans perdre le texte). Équipe, 4 onglets, journal restent honnêtement vides là où il n'y a pas encore de données. L'agent ouvert est dans l'adresse (`?agent=`). Écarts assumés : le chat n'a ni bulles ni carte de plan (il n'y a rien à y afficher avant le chapitre 9) ; les onglets Tâches, Historique et Réglages affichent un état vide qui dit à quel chapitre le contenu arrive ; le panneau du bureau (fiche 4) réutilise le même composant de chat.
 
 **Rôle :** donner des consignes à l'équipe et suivre son travail.

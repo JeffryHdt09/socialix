@@ -10,6 +10,7 @@ import { db } from "@/db";
 import { campaigns } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { readConversation } from "@/lib/chat-service";
+import { readPlans } from "@/lib/plan-queries";
 import { queryOverviewUnchecked } from "@/lib/overview-queries";
 
 // Couche d'accès aux données (DAL) : le vrai contrôle de sécurité, au plus près des données.
@@ -66,4 +67,10 @@ export const getOverview = cache(async (campaignId: string) => {
 export const getConversation = cache(async (campaignId: string, agentId: string) => {
   const { user } = await verifySession();
   return readConversation(user.id, campaignId, agentId);
+});
+
+// Les plans du Maître pour une campagne de l'utilisateur connecté (liste vide si la campagne n'est pas à lui).
+export const getPlans = cache(async (campaignId: string) => {
+  const { user } = await verifySession();
+  return readPlans(user.id, campaignId);
 });

@@ -1,7 +1,6 @@
 import "server-only";
 
 import { and, desc, eq, gt, sql } from "drizzle-orm";
-import { z } from "zod";
 
 import { db } from "@/db";
 import { campaigns, messages } from "@/db/schema";
@@ -9,7 +8,9 @@ import { findAgent } from "@/lib/agents";
 import { askAgent, ChatError, type ChatTurn, MAX_HISTORY, type ModelOptions } from "@/lib/chat";
 import { type ChatMessage, MAX_MESSAGE_LENGTH, type SendResult } from "@/lib/chat-types";
 import { MasterPlanError, runMaster } from "@/lib/master";
+import { ownsCampaign } from "@/lib/ownership";
 import type { PlanDraft, ValidPlan } from "@/lib/plan";
+import { readPlans } from "@/lib/plan-queries";
 import { savePlan } from "@/lib/plan-service";
 
 // Le cœur du chat, SANS rien de propre à Next (ni cookies, ni session) : le propriétaire (`userId`) est un paramètre,
@@ -21,13 +22,6 @@ import { savePlan } from "@/lib/plan-service";
 export const MAX_MESSAGES_PER_MINUTE = 10;
 
 const toChatMessage = (m: typeof messages.$inferSelect): ChatMessage => ({ id: m.id, role: m.role, content: m.content, createdAt: m.createdAt.toISOString(), planId: m.planId });
-
-// La campagne est-elle bien à cette personne ? Même règle d'isolation que partout : identifiant ET propriétaire.
-async function ownsCampaign(userId: string, campaignId: string): Promise<boolean> {
-  if (!z.uuid().safeParse(campaignId).success) return false;
-  const [row] = await db.select({ id: campaigns.id }).from(campaigns).where(and(eq(campaigns.id, campaignId), eq(campaigns.userId, userId))).limit(1);
-  return !!row;
-}
 
 // Les derniers messages d'une conversation, du plus ancien au plus récent. Liste vide si la campagne n'est pas à la
 // personne ou si l'agent n'existe pas (on ne révèle rien).
@@ -89,7 +83,9 @@ export async function sendMessageAs(userId: string, campaignId: string, agentId:
       const [a] = await tx.insert(messages).values({ campaignId, agent: agent.id, role: "assistant", content: reply.text, model: reply.model, planId, createdAt: new Date() }).returning();
       return [u, a];
     });
-    return { ok: true, messages: [toChatMessage(userRow), toChatMessage(agentRow)] };
+    // Le plan complet repart avec la réponse : l'interface affiche sa carte tout de suite, sans second aller-retour
+    const [createdPlan] = agentRow.planId ? await readPlans(userId, campaignId, { onlyPlanId: agentRow.planId }) : [];
+    return { ok: true, messages: [toChatMessage(userRow), toChatMessage(agentRow)], plan: createdPlan };
   } catch (error) {
     // Par exemple une campagne supprimée pendant que le modèle réfléchissait : rien n'est enregistré, et on le dit.
     // On ne journalise JAMAIS error.message : celui de la base recopie les paramètres de la requête, donc le texte écrit par la

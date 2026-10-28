@@ -1,3 +1,5 @@
+import type { PlanView } from "@/lib/plan-types";
+
 // Types et limites partagés entre le serveur (envoi des messages) et l'interface (affichage). Aucun code secret ici :
 // ce fichier peut être importé côté navigateur.
 
@@ -14,4 +16,4 @@ export type ChatMessage = {
 };
 
 // Réponse d'une action d'envoi : soit les deux nouveaux messages (le tien et la réponse), soit une explication en français.
-export type SendResult = { ok: true; messages: [ChatMessage, ChatMessage] } | { ok: false; error: string };
+export type SendResult = { ok: true; messages: [ChatMessage, ChatMessage]; plan?: PlanView } | { ok: false; error: string };

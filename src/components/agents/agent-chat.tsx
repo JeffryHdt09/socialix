@@ -4,11 +4,13 @@ import { useEffect, useRef, useState } from "react";
 
 import { sendMessage } from "@/app/dashboard/chat-actions";
 import { FormattedText } from "@/components/agents/formatted-text";
+import { PlanCard } from "@/components/agents/plan-card";
 import { StatusDot } from "@/components/agents/status-dot";
 import { Button } from "@/components/ui/button";
 import { type Agent, STATUS_LABEL } from "@/lib/agents";
 import { type ChatMessage, MAX_MESSAGE_LENGTH } from "@/lib/chat-types";
 import { formatClock, formatPostDate } from "@/lib/dates";
+import type { PlanView } from "@/lib/plan-types";
 import { cn } from "@/lib/utils";
 
 // LE composant de discussion, utilisé partout : dans l'onglet « Discussion » de la page Agents et dans le panneau qui
@@ -16,7 +18,10 @@ import { cn } from "@/lib/utils";
 // La conversation de départ vient du serveur (initialMessages) ; ensuite le composant la fait vivre :
 // - ton message s'affiche tout de suite (provisoire), puis est remplacé par les deux vrais messages enregistrés ;
 // - si l'envoi échoue, le message provisoire disparaît, l'erreur est annoncée et ton texte revient dans la saisie.
-export function AgentChat({ agent, campaignId, initialMessages, className }: { agent: Agent; campaignId: string; initialMessages: ChatMessage[]; className?: string }) {
+// `plans` et `onPlanChange` : les plans du Maître, dont l'état (par exemple « annulé ») est tenu par le parent pour être partagé avec l'onglet Tâches.
+type Props = { agent: Agent; campaignId: string; initialMessages: ChatMessage[]; plans: PlanView[]; onPlanChange: (plan: PlanView) => void; className?: string };
+
+export function AgentChat({ agent, campaignId, initialMessages, plans, onPlanChange, className }: Props) {
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -44,6 +49,7 @@ export function AgentChat({ agent, campaignId, initialMessages, className }: { a
       const result = await sendMessage(campaignId, agent.id, text);
       if (result.ok) {
         setMessages((m) => [...m.filter((x) => x.id !== temp.id), ...result.messages]);
+        if (result.plan) onPlanChange(result.plan); // la carte du plan s'affiche tout de suite sous la réponse du Maître
       } else {
         setMessages((m) => m.filter((x) => x.id !== temp.id));
         setDraft((d) => (d ? `${text}\n${d}` : text)); // ton texte revient, rien n'est perdu
@@ -95,6 +101,11 @@ export function AgentChat({ agent, campaignId, initialMessages, className }: { a
                 <time dateTime={m.createdAt} title={formatPostDate(new Date(m.createdAt))} className="font-mono text-[11px] text-muted-foreground">
                   {formatClock(new Date(m.createdAt))}
                 </time>
+                {m.planId && plans.some((p) => p.id === m.planId) && (
+                  <div className="mt-1 w-full">
+                    <PlanCard plan={plans.find((p) => p.id === m.planId)!} campaignId={campaignId} onChange={onPlanChange} />
+                  </div>
+                )}
               </li>
             ))}
           </ol>

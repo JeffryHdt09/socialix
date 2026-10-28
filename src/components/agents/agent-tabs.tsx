@@ -1,10 +1,13 @@
 "use client";
 
 import { Tabs } from "radix-ui";
+import { useState } from "react";
 
 import { AgentChat } from "@/components/agents/agent-chat";
+import { PlanCard } from "@/components/agents/plan-card";
 import type { Agent } from "@/lib/agents";
 import type { ChatMessage } from "@/lib/chat-types";
+import type { PlanView } from "@/lib/plan-types";
 import { cn } from "@/lib/utils";
 
 // Les quatre onglets de l'agent ouvert (PAGES.md, fiche 5). Radix donne le clavier de la norme ARIA : flèches gauche/droite
@@ -23,7 +26,17 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="rounded-xl border border-dashed border-border p-5 text-[15px] text-muted-foreground">{children}</p>;
 }
 
-export function AgentTabs({ agent, campaignId, initialMessages }: { agent: Agent; campaignId: string; initialMessages: ChatMessage[] }) {
+type Props = { agent: Agent; campaignId: string; initialMessages: ChatMessage[]; initialPlans: PlanView[] };
+
+export function AgentTabs({ agent, campaignId, initialMessages, initialPlans }: Props) {
+  // Les plans vivent ICI : la discussion (carte du plan sous la réponse du Maître) et l'onglet Tâches montrent les mêmes
+  // plans, donc annuler dans l'un met l'autre à jour sans rechargement.
+  const [plans, setPlans] = useState(initialPlans);
+  const upsert = (plan: PlanView) => setPlans((all) => (all.some((p) => p.id === plan.id) ? all.map((p) => (p.id === plan.id ? plan : p)) : [plan, ...all]));
+  const isMaster = agent.id === "maitre";
+  // Le Maître voit tous les plans ; un agent de travail, seulement les plans où une tâche lui est confiée
+  const visible = isMaster ? plans : plans.filter((p) => p.tasks.some((t) => t.agent === agent.id));
+
   return (
     <Tabs.Root defaultValue="discussion" className="flex min-w-0 flex-col gap-5">
       <Tabs.List aria-label={`Onglets de ${agent.name}`} className="flex flex-wrap gap-1 border-b border-border">
@@ -43,12 +56,21 @@ export function AgentTabs({ agent, campaignId, initialMessages }: { agent: Agent
       </Tabs.List>
 
       {/* forceMount : la discussion reste en mémoire quand on change d'onglet (sinon elle repartirait de la liste du serveur et
-          perdrait ce qu'on vient d'écrire) ; `hidden` la masque tant qu'elle n'est pas l'onglet courant. */}
+          perdrait ce qu'on vient d'écrire) ; data-[state=inactive]:hidden la masque tant qu'elle n'est pas l'onglet courant. */}
       <Tabs.Content value="discussion" forceMount className={cn(PANEL, "data-[state=inactive]:hidden")}>
-        <AgentChat agent={agent} campaignId={campaignId} initialMessages={initialMessages} />
+        <AgentChat agent={agent} campaignId={campaignId} initialMessages={initialMessages} plans={plans} onPlanChange={upsert} />
       </Tabs.Content>
-      <Tabs.Content value="taches" className={PANEL}>
-        <Empty>Aucune tâche pour l’instant. Les tâches que le Maître répartit à {agent.name} apparaîtront ici, avec leur état (chapitres 10 et 11).</Empty>
+      <Tabs.Content value="taches" className={cn("flex flex-col gap-4", PANEL)}>
+        <h2 className="text-[13px] font-medium text-muted-foreground">{isMaster ? "Plans de l’équipe" : `Tâches confiées à ${agent.name}`}</h2>
+        {visible.length === 0 ? (
+          <Empty>
+            {isMaster
+              ? "Aucun plan pour l’instant. Demande au Maître de planifier un travail dans l’onglet Discussion : le plan et ses tâches apparaîtront ici."
+              : `Aucune tâche confiée à ${agent.name} pour l’instant. Quand le Maître l’inclura dans un plan, elle apparaîtra ici avec son état.`}
+          </Empty>
+        ) : (
+          visible.map((p) => <PlanCard key={p.id} plan={p} campaignId={campaignId} onChange={upsert} onlyAgent={isMaster ? undefined : agent.id} />)
+        )}
       </Tabs.Content>
       <Tabs.Content value="historique" className={PANEL}>
         <Empty>Aucun historique pour l’instant. Ce que {agent.name} aura fait sera daté et listé ici.</Empty>
@@ -58,7 +80,7 @@ export function AgentTabs({ agent, campaignId, initialMessages }: { agent: Agent
           <h2 className="text-[13px] font-medium text-muted-foreground">Rôle de {agent.name}</h2>
           <p className="mt-1 text-[15px]">{agent.role}.</p>
         </div>
-        <Empty>Les instructions de {agent.name} et son activation seront modifiables ici au chapitre 9. Pour l’instant, rien à régler.</Empty>
+        <Empty>Les instructions de {agent.name} et son activation seront modifiables ici. Pour l’instant, rien à régler.</Empty>
       </Tabs.Content>
     </Tabs.Root>
   );
