@@ -4,12 +4,12 @@
 // Une ÉQUIPE = un domaine de travail. Le moteur d'agents ne connaît aucun domaine : pour en ajouter un, on ajoute une équipe
 // ici, son contexte dans agent-instructions.ts et ses agents dans la liste. Un projet choisit les équipes qu'il active
 // (colonne projects.teams) ; il dispose alors des agents « communs » (présents partout) et de ceux de ses équipes.
-export type TeamId = "commun" | "marketing" | "audio";
+export type TeamId = "commun" | "marketing" | "prospection";
 
 // Les domaines qu'une personne peut activer pour un projet (« commun » n'en fait pas partie : il est toujours là).
 export const TEAMS = [
   { id: "marketing", name: "Marketing", description: "Réseaux sociaux d’un commerce : idées, textes des posts, calendrier, résultats." },
-  { id: "audio", name: "Audio-description", description: "Décrire à l’oral ce qu’on voit dans une vidéo, pour les personnes aveugles ou malvoyantes." },
+  { id: "prospection", name: "Prospection", description: "Trouver des clients pour une offre précise : qualifier des prospects, proposer, relancer." },
 ] as const satisfies readonly { id: Exclude<TeamId, "commun">; name: string; description: string }[];
 
 export type ActiveTeamId = (typeof TEAMS)[number]["id"];
@@ -21,8 +21,9 @@ export const AGENTS = [
   { id: "createur", team: "marketing", name: "Créateur", role: "Rédige les posts et prépare les images" },
   { id: "planificateur", team: "marketing", name: "Planificateur", role: "Choisit les jours et les heures de publication" },
   { id: "analytique", team: "marketing", name: "Analytique", role: "Lit les résultats et en tire des conseils" },
-  { id: "descripteur", team: "audio", name: "Descripteur", role: "Rédige l’audio-description d’une vidéo, scène par scène" },
-  { id: "controleur", team: "audio", name: "Contrôleur", role: "Relit les descriptions : clarté, durée et exactitude" },
+  { id: "qualificateur", team: "prospection", name: "Qualificateur", role: "Trie des prospects selon des critères précis" },
+  { id: "propositions", team: "prospection", name: "Propositions", role: "Rédige une proposition adaptée à un prospect donné" },
+  { id: "suivi", team: "prospection", name: "Suivi", role: "Organise les relances et les prochaines actions" },
 ] as const satisfies readonly { id: string; team: TeamId; name: string; role: string }[];
 
 export type AgentId = (typeof AGENTS)[number]["id"];

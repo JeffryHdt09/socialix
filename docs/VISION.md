@@ -26,7 +26,35 @@ Développement logiciel · Audio (transcription, traduction, sous-titres, voix d
 
 Chaque domaine = une **équipe** (un contexte, des agents, des outils). Ajouter un domaine ne doit pas demander de réécrire le moteur.
 
-**Un projet choisit ses domaines** (colonne `projects.teams`, chapitre 10b) : il dispose des agents communs (Maître, Recherche) et de ceux de chaque domaine activé. Deux domaines déjà présents : marketing et audio-description. Un agent n'est utile que par ses outils : sans outils (chapitre 12), les agents d'un nouveau domaine discutent et conseillent seulement.
+**Un projet choisit ses domaines** (colonne `projects.teams`, chapitre 10b) : il dispose des agents communs (Maître, Recherche) et de ceux de chaque domaine activé. Les domaines sont **préparés d'avance** dans un catalogue (`TEAMS` dans `src/lib/agents.ts`) : le système ne crée pas d'agents à la volée, ce qui serait difficile à tester et à borner. Domaines présents : marketing et prospection. Un agent n'est utile que par ses outils : sans outils (chapitre 12), les agents d'un nouveau domaine discutent et conseillent seulement.
+
+## Le catalogue visé (décidé avec l'utilisateur le 28/10/2026)
+
+Chaque domaine couvre **toute sa chaîne**, du besoin au résultat.
+
+| Domaine | Chaîne d'agents | État |
+|---|---|---|
+| **Marketing digital** | recherche de marché → stratégie → création → planification → analyse | Présent (Maître, Recherche, Créateur, Planificateur, Analytique), sans outils |
+| **Prospection** | qualification → proposition → suivi (veille et analyse viendront avec les outils) | Présent depuis le 28/10 (Qualificateur, Propositions, Suivi), sans outils. Premier domaine hors marketing : il sert d'abord le projet d'audio-description de l'utilisateur |
+| **Montage vidéo** | scénario → découpage → prompts → montage → déclinaisons | À faire, relié à Video Studio (voir plus bas) |
+| **Produits digitaux** | problème du marché → solution → offre → système de vente | À faire ; la validation de la demande passe avant tout investissement |
+
+L'agent Recherche (commun) sert la recherche de marché des trois derniers domaines.
+
+**Projet d'audio-description de l'utilisateur** : il le mène **à la main d'abord**, pour apprendre le marché et gagner un premier client ; les agents prendront le relais ensuite, sur un travail qu'il connaît. Il n'y a donc pas d'équipe « audio-description » pour l'instant.
+
+## Contraintes données par l'utilisateur (questionnaire de la conversation du 27-28/10/2026)
+
+- Construction **hybride** : orchestrer d'un côté, coder les parties complexes de l'autre.
+- Priorité numéro un : **revenus le plus vite possible**.
+- Budget : **faible, seulement pour les outils** (le quota gratuit de Gemini est donc une contrainte réelle : plafond de jetons par personne, au chapitre 11).
+- Autonomie : **les agents préparent, la personne valide les actions sensibles**.
+- Temps disponible : environ 10 heures par semaine.
+- Règle de calcul : tout ce qui est déterministe (facture, total, date) se fait par une fonction classique testée, jamais par le modèle.
+
+## Video Studio (le montage vidéo)
+
+Dossier `C:devideo-studio` : un studio en ligne de commande (`npx tsx src/cli.ts`) où les moteurs de génération sont interchangeables (Flow MCP, Veo) et où le montage passe par HyperFrames puis FFmpeg. Il a déjà les mêmes principes que nous : un moteur payant demande `--approve`, pas de bascule automatique entre moteurs, un job déjà soumis n'est jamais resoumis, chaque média a un `.json` jumeau (prompt, hash, mesures). Piste d'intégration (chapitre 12) : un **outil** « studio » qui appelle `new-video`, `render` et `status`, avec l'approbation de la personne avant tout coût. Pas avant le chapitre 12, et seulement sur la machine de l'utilisateur (pas dans une application hébergée).
 
 ## Les workflows visés
 
