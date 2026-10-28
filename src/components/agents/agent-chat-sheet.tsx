@@ -1,16 +1,20 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { AgentChat } from "@/components/agents/agent-chat";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import type { Agent } from "@/lib/agents";
 import type { ChatMessage } from "@/lib/chat-types";
+import type { PlanView } from "@/lib/plan-types";
 
 // Le panneau de chat à gauche, ouvert depuis le bureau de la vue d'ensemble (PAGES.md, fiche 4). Son état vit dans
 // l'adresse (?chat=agent) : le panneau survit à un rechargement, se partage, et le serveur n'a rien à deviner.
 // Radix gère le reste : focus piégé dans le panneau, Échap pour fermer, page derrière rendue inerte.
-export function AgentChatSheet({ agent, campaignId, initialMessages }: { agent: Agent | undefined; campaignId: string; initialMessages: ChatMessage[] }) {
+type Props = { agent: Agent | undefined; campaignId: string; initialMessages: ChatMessage[]; initialPlans: PlanView[] };
+
+export function AgentChatSheet({ agent, campaignId, initialMessages, initialPlans }: Props) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -41,9 +45,17 @@ export function AgentChatSheet({ agent, campaignId, initialMessages }: { agent: 
         >
           <SheetTitle className="sr-only">Discussion avec {agent.name}</SheetTitle>
           <SheetDescription className="sr-only">Panneau de discussion avec l’agent {agent.name}. Appuie sur Échap pour le fermer.</SheetDescription>
-          <AgentChat key={agent.id} agent={agent} campaignId={campaignId} initialMessages={initialMessages} className="mt-8 min-h-0 flex-1" />
+          <SheetChat key={agent.id} agent={agent} campaignId={campaignId} initialMessages={initialMessages} initialPlans={initialPlans} />
         </SheetContent>
       )}
     </Sheet>
   );
+}
+
+// Le contenu du panneau, avec ses plans en mémoire. Un composant à part, démonté à la fermeture : à chaque ouverture, il
+// repart des plans fraîchement lus par le serveur (sinon l'état de la visite précédente resterait affiché).
+function SheetChat({ agent, campaignId, initialMessages, initialPlans }: { agent: Agent; campaignId: string; initialMessages: ChatMessage[]; initialPlans: PlanView[] }) {
+  const [plans, setPlans] = useState(initialPlans);
+  const upsert = (plan: PlanView) => setPlans((all) => (all.some((p) => p.id === plan.id) ? all.map((p) => (p.id === plan.id ? plan : p)) : [plan, ...all]));
+  return <AgentChat agent={agent} campaignId={campaignId} initialMessages={initialMessages} plans={plans} onPlanChange={upsert} className="mt-8 min-h-0 flex-1" />;
 }

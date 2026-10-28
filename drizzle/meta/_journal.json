@@ -36,6 +36,20 @@
       "when": 1793189178362,
       "tag": "0004_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793194327383,
+      "tag": "0005_agent-plans-tasks",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793195451291,
+      "tag": "0006_messages-plan-link",
+      "breakpoints": true
     }
   ]
 }
