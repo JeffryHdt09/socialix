@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, check, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
 
@@ -109,6 +109,9 @@ export const messages = pgTable(
     content: text("content").notNull(),
     // Le modèle qui a produit la réponse (utile pour comprendre un comportement ou un repli) ; vide pour les messages de la personne.
     model: text("model"),
+    // Le plan que ce message présente (réponse du Maître) : l'interface affiche la carte du plan à cet endroit de la
+    // conversation. Si le plan disparaît, le message reste (set null) : on ne perd pas la conversation.
+    planId: uuid("plan_id").references((): AnyPgColumn => agentPlans.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [

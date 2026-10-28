@@ -1,6 +1,6 @@
 import "server-only";
 
-import { APICallError, RetryError, ToolLoopAgent } from "ai";
+import { APICallError, type LanguageModel, RetryError, ToolLoopAgent } from "ai";
 
 import { instructionsFor } from "@/lib/agent-instructions";
 import type { AgentId } from "@/lib/agents";
@@ -11,6 +11,10 @@ import { CHAT_MODELS, getModel } from "@/lib/models";
 export const MAX_HISTORY = 20;
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
+
+// Réglages d'un appel : la liste de modèles et la façon d'en fabriquer un. Les deux ont une valeur par défaut ; les tests
+// les remplacent (liste inventée, faux modèle) pour vérifier le comportement sans appeler Gemini ni épuiser le quota.
+export type ModelOptions = { models?: readonly string[]; modelFactory?: (name: string) => LanguageModel };
 
 // Pourquoi aucun modèle n'a répondu : « quota » (limite gratuite atteinte, réessayer plus tard) ou « unavailable » (panne,
 // clé refusée, modèles retirés…). On ne transmet jamais le texte de l'erreur d'origine : il peut contenir des détails internes.
@@ -37,19 +41,15 @@ export function canTryNextModel(error: unknown): boolean {
   return !(status !== undefined && [400, 401, 403].includes(status));
 }
 
-// Pose la question à l'agent, avec les consignes de son rôle et l'historique, en passant au modèle suivant si besoin.
-// `models` est paramétrable pour les tests ; par défaut, la liste de models.ts.
-export async function askAgent(agent: AgentId, history: ChatTurn[], models: readonly string[] = CHAT_MODELS): Promise<{ text: string; model: string }> {
+// Essaie `run` avec chaque modèle de la liste, dans l'ordre, jusqu'à ce que l'un réponde (`run` renvoie null pour dire
+// « réponse vide, essaie le suivant »). Partagé par le chat simple et par le Maître : un seul endroit décide quand on
+// change de modèle.
+export async function withModelFallback<T>(models: readonly string[], run: (modelName: string) => Promise<T | null>): Promise<{ value: T; model: string }> {
   let sawQuota = false;
   for (const name of models) {
     try {
-      // ToolLoopAgent : la boucle d'agent de l'AI SDK. Sans outil, elle fait un seul tour ; au chapitre 12, on lui
-      // donnera des outils (`tools`) sans rien changer d'autre.
-      const bot = new ToolLoopAgent({ id: agent, model: getModel(name), instructions: instructionsFor(agent), maxRetries: 1 });
-      const result = await bot.generate({ messages: history.slice(-MAX_HISTORY), timeout: 30_000 });
-      const text = result.text.trim();
-      if (text) return { text, model: name };
-      // Réponse vide (filtre de sécurité, modèle qui n'a rien dit) : on essaie le suivant
+      const value = await run(name);
+      if (value !== null) return { value, model: name };
     } catch (error) {
       const status = statusOf(error);
       if (status === 429) sawQuota = true;
@@ -59,4 +59,17 @@ export async function askAgent(agent: AgentId, history: ChatTurn[], models: read
     }
   }
   throw new ChatError(sawQuota ? "quota" : "unavailable");
+}
+
+// Pose la question à l'agent, avec les consignes de son rôle et l'historique, en passant au modèle suivant si besoin.
+export async function askAgent(agent: AgentId, history: ChatTurn[], options: ModelOptions = {}): Promise<{ text: string; model: string }> {
+  const { models = CHAT_MODELS, modelFactory = getModel } = options;
+  const { value, model } = await withModelFallback(models, async (name) => {
+    // ToolLoopAgent : la boucle d'agent de l'AI SDK. Sans outil, elle fait un seul tour ; au chapitre 12, on lui
+    // donnera des outils (`tools`) sans rien changer d'autre.
+    const bot = new ToolLoopAgent({ id: agent, model: modelFactory(name), instructions: instructionsFor(agent), maxRetries: 1 });
+    const result = await bot.generate({ messages: history.slice(-MAX_HISTORY), timeout: 30_000 });
+    return result.text.trim() || null; // réponse vide (filtre de sécurité…) : on essaie le suivant
+  });
+  return { text: value, model };
 }

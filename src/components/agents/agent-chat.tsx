@@ -37,7 +37,7 @@ export function AgentChat({ agent, campaignId, initialMessages, className }: { a
     busy.current = true;
     setSending(true);
     setError(null);
-    const temp: ChatMessage = { id: `provisoire-${Date.now()}`, role: "user", content: text, createdAt: new Date().toISOString() };
+    const temp: ChatMessage = { id: `provisoire-${Date.now()}`, role: "user", content: text, createdAt: new Date().toISOString(), planId: null };
     setMessages((m) => [...m, temp]);
     setDraft("");
     try {
