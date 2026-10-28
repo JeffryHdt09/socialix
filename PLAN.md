@@ -144,6 +144,22 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 
 **Pourquoi E2B passe en dernier et en option :** dans la vidéo, il arrive entre Inngest et les outils. Mais c'est le morceau le plus lourd (VM, coûts, sécurité des sessions), la démo est elle-même lente et bancale, et l'outil de recherche web suffit à l'agent Recherche pour le critère de fin.
 
+### Ce qu'on reprend d'Hermes Agent (étudié le 28/10/2026, d'après sa documentation officielle)
+
+Hermes Agent (Nous Research, MIT) est un agent personnel généraliste. Écarté comme moteur : isolation par profil (un processus par client), outils terminal à accès complet, coût d'hébergement. On reprend seulement des idées, adaptées à des comptes multiples :
+
+| Idée | Chez nous | Quand |
+|---|---|---|
+| Filtre anti-injection sur tout texte qui entre dans un prompt | `src/lib/prompt-safety.ts` (pure, **faite**, testée) | À brancher sur la mémoire (ch. 13) et le texte des pages web (ch. 12) |
+| Protection SSRF avant tout outil web | `src/lib/url-safety.ts` (pure, **faite**, testée, avec résolution du nom) | À brancher à l'outil web (ch. 12) |
+| Niveaux d'approbation : lecture libre, écriture visible avec confirmation, irréversible interdit ; règles de refus avant tout | Un niveau par outil, déclaré avec l'outil | Ch. 12 |
+| Mémoire bornée, injectée figée en début de session, écriture validée par la personne, refus (pas d'effacement) quand pleine | Table par campagne : marque, ton, interdits | Ch. 13 |
+| Skills : procédures chargées à la demande (liste courte, puis contenu) | Écrites et validées par nous, **jamais créées seules par l'agent** | Ch. 12-13 |
+| Recherche plein texte dans l'historique, messages réels sans résumé | Postgres FTS | Ch. 13 |
+| Clés d'idempotence (24 h), limite de concurrence (429), signal « toujours vivant » sur les flux | Exécuteur Inngest | Ch. 11 |
+
+Limite assumée : les deux filtres sont des garde-fous par motifs, pas des preuves. Ils s'ajoutent aux vraies protections (outils autorisés par agent, confirmation avant action visible) et ne les remplacent pas. Hermes pourrait un jour servir d'**outil** d'un agent (veille), pas de moteur.
+
 ## 6. Comptes à créer (au moment où on en a besoin)
 
 | Service | Ch. | Remarque |
