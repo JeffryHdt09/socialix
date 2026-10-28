@@ -205,6 +205,9 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - **Redirection après connexion** : elle vit dans la page `/dashboard` (sans campagne, `redirect("/campaigns/new")`), pas dans les formulaires de connexion : le chemin est le même pour l'e-mail et pour Google. Au chapitre 6, « avec campagne » mènera à la vue d'ensemble de la dernière campagne ouverte.
 - **Tests de bout en bout** : un test avec un vrai navigateur a trouvé deux défauts que `tsc`, `lint` et `build` laissaient passer (bouton « Continuer » qui envoyait le formulaire, image du décor non chargée dans une zone cachée). Pour une page interactive, un test de ce type fait partie de « fini ».
 
+- **Audit d'accessibilité (méthode)** : `axe-core` (MPL-2.0, Deque), exécuté dans un vrai Chrome sur chaque page en Jour et en Nuit, menu replié et déplié, menus ouverts, tiroir mobile et écrans de connexion, avec les règles WCAG 2.2 AA et les bonnes pratiques. Installé **hors du projet** (non ajouté aux dépendances). Il a trouvé au chapitre 6 deux vrais défauts (boutons du menu replié sans nom accessible, barre latérale hors de tout repère) que ni `tsc`, ni `lint`, ni les captures ne montraient. À refaire à chaque chapitre qui ajoute des écrans.
+- **Cache Components et `notFound()`** : voir « Isolation des données » plus haut.
+
 ## 9. Avancement
 
 - [x] Squelette Next.js 16.4.3 généré dans `socialix` (TypeScript, Tailwind v4, ESLint, `src/`, App Router)
@@ -220,6 +223,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - [x] **Chapitre 3** : Supabase (PostgreSQL 17) + Drizzle + Better Auth : migrations `0000_auth` et `0001_enable-rls`, pages `/sign-in` et `/sign-up` (règles de mot de passe CNIL), connexion Google, `/dashboard` protégé (proxy + `verifySession`)
 - [x] **Chapitre 4** : shadcn/ui (base Radix) avec la charte de `docs/DESIGN.md` : variables Jour/Nuit, composants `Button`, `Input`, `Label`, `DropdownMenu` adaptés (44 px, arrondi 10 px, focus encre), bouton Jour/Nuit (`next-themes`, classe `dark`)
 - [ ] **Chapitre 5** (en cours, branche `ch5-campagne`) : table `campaigns`, règles de validation, stockage S3 des logos, page `/campaigns/new` en 2 étapes, liste sur `/dashboard`, redirections. Reste : pull request et relecture
+- [ ] **Chapitre 6** (en cours, branche `ch6-layout`) : barre latérale adaptée, routes `/dashboard/[campaignId]/…` avec isolation, menu (sélecteur, 7 sections, profil), en-tête avec « Créer un post », audit d'accessibilité. Reste : pull request et relecture
 - [ ] Phase 1 : [ ] 5 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)

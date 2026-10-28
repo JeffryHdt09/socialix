@@ -54,8 +54,8 @@ export function SidebarProfile({ user }: { user: { name: string; email: string }
               <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-md border border-border bg-muted text-sm font-bold">
                 {initial}
               </span>
-              {/* masqué quand le menu est replié : seul l'initiale reste, centrée */}
-              <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+              {/* Replié, seule l'initiale reste visible, centrée ; le nom reste lu par les lecteurs d'écran (sr-only, pas hidden) */}
+              <span className="grid min-w-0 flex-1 text-left leading-tight group-data-[collapsible=icon]:sr-only">
                 <span className="truncate font-semibold">{user.name}</span>
                 <span className="truncate font-mono text-[12px] font-normal text-muted-foreground">{user.email}</span>
               </span>

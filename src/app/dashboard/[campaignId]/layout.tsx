@@ -33,6 +33,14 @@ async function CampaignShell({ children, params }: { children: React.ReactNode; 
   return (
     // TooltipProvider : les info-bulles du menu replié (la barre latérale de shadcn ne le fournit pas).
     <TooltipProvider delayDuration={0}>
+      {/* Lien d'évitement : invisible, il apparaît au premier appui sur Tab. Sans lui, un utilisateur du clavier
+          traverse tout le menu (une douzaine d'arrêts) à chaque page avant d'atteindre le contenu. */}
+      <a
+        href="#contenu"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-3 focus:text-[15px] focus:font-semibold focus:text-primary-foreground"
+      >
+        Aller au contenu
+      </a>
       <SidebarProvider defaultOpen={open}>
         <AppSidebar
           // Le médaillon est calculé ici, côté serveur (l'adresse du logo vient du module de stockage) :
@@ -46,7 +54,10 @@ async function CampaignShell({ children, params }: { children: React.ReactNode; 
             {/* max-md:size-11 : 44 px sur écran étroit (zone cliquable de la charte), sans dépendre de la détection tactile */}
             <SidebarTrigger className="max-md:size-11" />
           </div>
-          <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 pb-10 sm:px-10">{children}</div>
+          {/* id + tabIndex=-1 : cible du lien d'évitement (reçoit le focus sans devenir un arrêt de Tab) */}
+          <div id="contenu" tabIndex={-1} className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 pb-10 outline-none sm:px-10">
+            {children}
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

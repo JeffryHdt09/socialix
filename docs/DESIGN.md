@@ -99,6 +99,14 @@
 - Les états ne reposent jamais sur la couleur seule : texte ou hachures en plus.
 - Vrais éléments HTML (`button`, `a`, `label`), pas de `div` cliquable.
 
+### Règles apprises en auditant le cadre d'une campagne (chapitre 6, axe-core)
+
+- **Caché à l'œil, pas aux lecteurs d'écran** : pour masquer un texte à l'écran (menu replié), utiliser `sr-only`, **jamais** `hidden` / `display: none`, qui le retire aussi des lecteurs d'écran. Un bouton dont le seul texte est en `hidden` n'a plus de nom accessible (erreur critique `button-name`).
+- **Repères** : une page a un `<main>` (fourni par `SidebarInset`), la barre latérale est un repère « complémentaire » étiqueté, ses liens sont dans un `<nav aria-label>`. Tout contenu doit être dans un repère.
+- **Lien d'évitement** « Aller au contenu » au tout début des pages avec un menu : sans lui, un utilisateur du clavier traverse tout le menu à chaque page.
+- **Menus ouverts** (Radix) : tant qu'un menu modal est ouvert, Radix masque volontairement le reste de la page aux lecteurs d'écran et piège le focus dedans. Les outils d'audit le signalent (`aria-hidden-focus`, « pas de `<main>` ») : c'est le comportement voulu. Pour un menu ouvert, on audite le menu lui-même.
+- **Mouvement réduit** : règle globale dans `globals.css` (durées quasi nulles) ; vérifiée sur la barre latérale (200 ms par défaut, 0,01 ms avec la préférence).
+
 ## Interdits (en plus de la liste du skill design)
 
 - Dégradés, néons, halos, verre dépoli.

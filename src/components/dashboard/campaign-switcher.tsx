@@ -36,8 +36,9 @@ export function CampaignSwitcher({ campaigns, currentId }: { campaigns: Campaign
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg" tooltip={current.name} className="rounded-lg group-data-[collapsible=icon]:justify-center">
               <CampaignAvatar name={current.name} iconKey={current.iconKey} imageUrl={current.imageUrl} className="size-8 rounded-md text-sm" />
-              {/* masqué quand le menu est replié : sinon un bout du nom dépasse à côté du médaillon */}
-              <span className="min-w-0 flex-1 truncate font-semibold group-data-[collapsible=icon]:hidden">{current.name}</span>
+              {/* Replié, le nom est caché À L'ŒIL (sinon un bout dépasse à côté du médaillon) mais gardé pour les lecteurs
+                  d'écran : « hidden » le retirerait aussi d'eux, et le bouton n'aurait plus aucun nom accessible. */}
+              <span className="min-w-0 flex-1 truncate font-semibold group-data-[collapsible=icon]:sr-only">{current.name}</span>
               <ChevronsUpDown className="ml-auto text-muted-foreground group-data-[collapsible=icon]:hidden" aria-hidden="true" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>

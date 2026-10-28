@@ -26,26 +26,29 @@ export function SidebarNav({ campaignId }: { campaignId: string }) {
   const { setOpenMobile } = useSidebar();
 
   return (
-    <SidebarGroup>
-      <SidebarMenu>
-        {CAMPAIGN_SECTIONS.map(({ slug, label }) => {
-          const href = `/dashboard/${campaignId}/${slug}`;
-          const active = pathname === href;
-          const Icon = ICONS[slug];
-          return (
-            <SidebarMenuItem key={slug}>
-              {/* tooltip : le libellé apparaît au survol quand le menu est replié (icônes seules) */}
-              <SidebarMenuButton asChild isActive={active} tooltip={label}>
-                {/* sur téléphone, choisir une page referme le tiroir */}
-                <Link href={href} aria-current={active ? "page" : undefined} onClick={() => setOpenMobile(false)}>
-                  <Icon aria-hidden="true" />
-                  <span>{label}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          );
-        })}
-      </SidebarMenu>
-    </SidebarGroup>
+    // <nav> étiqueté : un lecteur d'écran annonce « Navigation de la campagne » et propose d'y sauter.
+    <nav aria-label="Navigation de la campagne">
+      <SidebarGroup>
+        <SidebarMenu>
+          {CAMPAIGN_SECTIONS.map(({ slug, label }) => {
+            const href = `/dashboard/${campaignId}/${slug}`;
+            const active = pathname === href;
+            const Icon = ICONS[slug];
+            return (
+              <SidebarMenuItem key={slug}>
+                {/* tooltip : le libellé apparaît au survol quand le menu est replié (icônes seules) */}
+                <SidebarMenuButton asChild isActive={active} tooltip={label}>
+                  {/* sur téléphone, choisir une page referme le tiroir */}
+                  <Link href={href} aria-current={active ? "page" : undefined} onClick={() => setOpenMobile(false)}>
+                    <Icon aria-hidden="true" />
+                    <span>{label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroup>
+    </nav>
   );
 }

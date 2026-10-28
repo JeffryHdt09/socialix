@@ -19,7 +19,9 @@ export function AppSidebar({
   user: { name: string; email: string };
 }) {
   return (
-    <Sidebar collapsible="icon">
+    // role + aria-label : toute la barre est un repère « complémentaire » pour les lecteurs d'écran (sans cela, le logo
+    // et la carte « Équipe IA » sont hors de tout repère, ce que signale axe-core). Le <nav> des liens est imbriqué dedans.
+    <Sidebar collapsible="icon" role="complementary" aria-label="Menu de la campagne">
       <SidebarHeader className="gap-3">
         {/* Replié, le logo disparaît : le médaillon du sélecteur, juste dessous, suffit. */}
         <Link href="/dashboard" className="inline-flex min-h-11 items-center px-3 text-xl font-extrabold tracking-tight group-data-[collapsible=icon]:hidden">
