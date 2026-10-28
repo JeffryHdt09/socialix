@@ -88,3 +88,37 @@ export const posts = pgTable(
 
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
+
+// Qui parle dans une conversation : la personne (`user`) ou l'agent (`assistant`).
+export const messageRoleEnum = pgEnum("message_role", ["user", "assistant"]);
+
+// L'historique des conversations avec les agents (chapitre 9). Un message appartient à une campagne et à un agent : la
+// conversation « Créateur de la campagne X » est simplement tous ses messages, du plus ancien au plus récent.
+export const messages = pgTable(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Supprimer la campagne supprime ses conversations (et la campagne appartient à un seul utilisateur).
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    // Identifiant de l'agent (« createur »…). Volontairement un texte libre et pas une liste fermée dans la base : le moteur
+    // est fait pour recevoir d'autres équipes (docs/VISION.md), et c'est l'application qui vérifie l'identifiant.
+    agent: text("agent").notNull(),
+    role: messageRoleEnum("role").notNull(),
+    content: text("content").notNull(),
+    // Le modèle qui a produit la réponse (utile pour comprendre un comportement ou un repli) ; vide pour les messages de la personne.
+    model: text("model"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // La lecture d'une conversation : une campagne, un agent, dans l'ordre du temps.
+    index("messages_conversation_idx").on(table.campaignId, table.agent, table.createdAt),
+    // Garde-fous de la base (l'application limite déjà la longueur à 4 000 caractères pour la personne) :
+    check("messages_content_length", sql`char_length(btrim(${table.content})) between 1 and 20000`),
+    check("messages_agent_not_empty", sql`char_length(btrim(${table.agent})) between 1 and 40`),
+  ],
+).enableRLS();
+
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
