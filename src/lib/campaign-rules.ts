@@ -6,6 +6,9 @@ import { z } from "zod";
 
 export const CAMPAIGN_NAME_MAX = 60;
 
+// Plafond par utilisateur : sans lui, un compte (ou un script) pourrait remplir la base et le stockage.
+export const MAX_CAMPAIGNS_PER_USER = 20;
+
 // Icônes proposées à l'étape 1 du formulaire. La clé est ce qu'on stocke (« icon:coffee » dans la base) ;
 // le dessin et le libellé français sont dans src/components/campaign/campaign-icon.tsx, qui doit
 // couvrir toutes ces clés (TypeScript refuse de compiler s'il en manque une).
@@ -46,3 +49,18 @@ export const campaignSchema = z.object({
 });
 
 export type CampaignInput = z.infer<typeof campaignSchema>;
+
+// Relit la valeur de campaigns.icon : « icon:<nom> », « upload:<clé> » ou vide.
+// Une valeur inattendue (base modifiée à la main, icône retirée de la liste) retombe sur « none » :
+// on affichera l'initiale du nom plutôt qu'une erreur.
+export type StoredIcon = { kind: "icon"; key: CampaignIconKey } | { kind: "upload"; key: string } | { kind: "none" };
+
+export function parseStoredIcon(value: string | null): StoredIcon {
+  if (value?.startsWith("icon:")) {
+    const key = value.slice("icon:".length);
+    const known = CAMPAIGN_ICON_KEYS.find((k) => k === key);
+    if (known) return { kind: "icon", key: known };
+  }
+  if (value?.startsWith("upload:")) return { kind: "upload", key: value.slice("upload:".length) };
+  return { kind: "none" };
+}
