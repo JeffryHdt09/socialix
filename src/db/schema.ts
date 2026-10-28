@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, index, integer, jsonb, pgEnum, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
 
@@ -122,3 +122,105 @@ export const messages = pgTable(
 
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
+
+// ── Chapitre 10 : le Maître planifie ─────────────────────────────────────────────────────────────────────────────────
+// Un PLAN répond à une demande (« 2 posts Instagram pour le lancement d'un café ») ; il contient des TÂCHES confiées chacune
+// à un agent, qui peuvent dépendre d'autres tâches (« rédiger » attend « chercher des idées »).
+
+export const planStatusEnum = pgEnum("plan_status", ["active", "done", "cancelled"]);
+export const taskStatusEnum = pgEnum("task_status", ["pending", "running", "done", "failed", "cancelled"]);
+
+export const agentPlans = pgTable(
+  "agent_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    // La demande de la personne, telle que le Maître l'a comprise, et le résumé qu'il lui a présenté.
+    request: text("request").notNull(),
+    summary: text("summary").notNull(),
+    // Le plan tel que le modèle l'a produit (JSON), gardé pour comprendre après coup ce qui a été décidé.
+    plan: jsonb("plan").notNull(),
+    status: planStatusEnum("status").notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("agent_plans_campaign_idx").on(table.campaignId, table.createdAt),
+    check("agent_plans_request_length", sql`char_length(btrim(${table.request})) between 1 and 4000`),
+  ],
+).enableRLS();
+
+export const agentTasks = pgTable(
+  "agent_tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => agentPlans.id, { onDelete: "cascade" }),
+    // Numéro d'affichage dans le plan (1, 2, 3…) : l'interface montre « 01 », « après 02 ».
+    position: integer("position").notNull(),
+    // Identifiant de l'agent (texte libre, comme dans messages : le moteur accepte d'autres équipes ; l'application vérifie).
+    agent: text("agent").notNull(),
+    title: text("title").notNull(),
+    instruction: text("instruction").notNull(),
+    status: taskStatusEnum("status").notNull().default("pending"),
+    // Ce que l'agent a produit (chapitres 11 et 12) ; vide tant que la tâche n'est pas faite.
+    output: jsonb("output"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("agent_tasks_plan_position_idx").on(table.planId, table.position),
+    index("agent_tasks_plan_status_idx").on(table.planId, table.status),
+    check("agent_tasks_position_positive", sql`${table.position} >= 1`),
+    check("agent_tasks_agent_length", sql`char_length(btrim(${table.agent})) between 1 and 40`),
+    check("agent_tasks_title_length", sql`char_length(btrim(${table.title})) between 1 and 120`),
+    check("agent_tasks_instruction_length", sql`char_length(btrim(${table.instruction})) between 1 and 4000`),
+  ],
+).enableRLS();
+
+// « La tâche A attend la tâche B » : une TABLE de liaison plutôt qu'une liste d'identifiants dans la tâche, pour que la base
+// refuse une dépendance vers une tâche qui n'existe pas et supprime les liens avec le plan. Les cycles (A attend B qui
+// attend A), eux, ne se détectent pas en SQL simple : ils sont refusés par validatePlan avant tout enregistrement.
+export const agentTaskDependencies = pgTable(
+  "agent_task_dependencies",
+  {
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => agentTasks.id, { onDelete: "cascade" }),
+    dependsOnTaskId: uuid("depends_on_task_id")
+      .notNull()
+      .references(() => agentTasks.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.taskId, table.dependsOnTaskId] }),
+    index("agent_task_dependencies_target_idx").on(table.dependsOnTaskId),
+    check("agent_task_dependencies_not_self", sql`${table.taskId} <> ${table.dependsOnTaskId}`),
+  ],
+).enableRLS();
+
+// Les échanges entre le Maître et un agent à propos d'une tâche (consigne donnée, résultat rendu, question posée).
+export const agentCommunications = pgTable(
+  "agent_communications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => agentTasks.id, { onDelete: "cascade" }),
+    fromAgent: text("from_agent").notNull(),
+    toAgent: text("to_agent").notNull(),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("agent_communications_task_idx").on(table.taskId, table.createdAt),
+    check("agent_communications_message_length", sql`char_length(btrim(${table.message})) between 1 and 20000`),
+  ],
+).enableRLS();
+
+export type AgentPlan = typeof agentPlans.$inferSelect;
+export type AgentTask = typeof agentTasks.$inferSelect;
