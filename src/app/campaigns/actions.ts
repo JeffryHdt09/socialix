@@ -9,6 +9,7 @@ import { campaigns } from "@/db/schema";
 import { campaignSchema, MAX_CAMPAIGNS_PER_USER } from "@/lib/campaign-rules";
 import { createCampaignWithinLimit } from "@/lib/campaign-store";
 import { getSession } from "@/lib/dal";
+import { rememberCampaign } from "@/lib/last-campaign";
 import { readLogoFile } from "@/lib/logo-upload";
 import { deleteLogo, uploadLogo } from "@/lib/storage";
 
@@ -63,6 +64,7 @@ export async function createCampaign(_previous: CreateCampaignState, formData: F
   //    entre-temps, ou erreur de base), on supprime le logo : sinon il resterait dans le stockage sans
   //    aucune campagne qui le référence.
   let logoKey: string | null = null;
+  let createdId = "";
   const discardLogo = async () => {
     if (!logoKey) return;
     // Si la suppression échoue aussi, on ne l'avale pas : le fichier reste sans propriétaire, et cette
@@ -78,10 +80,11 @@ export async function createCampaign(_previous: CreateCampaignState, formData: F
       // Le logo téléversé l'emporte sur l'icône si les deux arrivent (le formulaire les rend exclusifs).
       icon: logoKey ? `upload:${logoKey}` : parsed.data.icon ? `icon:${parsed.data.icon}` : null,
     });
-    if (outcome === "limit") {
+    if (outcome.status === "limit") {
       await discardLogo();
       return { message: limitMessage };
     }
+    createdId = outcome.id;
   } catch (error) {
     console.error("Création de campagne : échec", error);
     await discardLogo();
@@ -89,5 +92,7 @@ export async function createCampaign(_previous: CreateCampaignState, formData: F
   }
 
   // 5. redirect() lève une exception spéciale : il doit rester HORS du try, sinon on l'avalerait.
-  redirect("/dashboard");
+  // La campagne qu'on vient de créer devient celle qu'on retrouve en revenant sur /dashboard.
+  await rememberCampaign(createdId);
+  redirect(`/dashboard/${createdId}/overview`);
 }

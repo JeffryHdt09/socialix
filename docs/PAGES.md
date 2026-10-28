@@ -66,6 +66,13 @@
 
 **Téléphone :** le menu devient un tiroir ouvert par un bouton ; l'en-tête garde le titre et le bouton Créer.
 
+**Réalisé au chapitre 6, avec ces écarts assumés (pas de faux contenu) :**
+- Pas de compteurs (« 1 actif », « N à valider ») ni de lien « N posts à valider » : il n'y a encore ni agent ni post. La carte « Équipe IA » dit « Tes agents sont au repos », pastille grise.
+- Pas de champ de recherche : rien à chercher avant le chapitre 13.
+- « Créer un post » : « Avec l'équipe IA » mène à la page Agents ; « À la main » est grisé, « Bientôt » (l'éditeur arrive au chapitre 13).
+- Le profil contient le choix du thème Jour / Nuit / Système et la déconnexion.
+- Changer de campagne dans le sélecteur garde la même section et mémorise la campagne.
+
 ---
 
 ## 4. Vue d'ensemble · ch. 7 (panneau de chat : ch. 8)

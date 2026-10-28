@@ -88,7 +88,7 @@
   Attention : `--accent` est, chez shadcn, le **fond de survol** (beige en Jour, bleu nuit en Nuit), pas notre jaune.
 - **Thème Nuit** : la classe `dark` sur `<html>`, posée par `next-themes` (réglage de l'appareil par défaut). Le bouton Jour / Nuit / Système est `src/components/theme-toggle.tsx`.
 - **Composants** : `src/components/ui/` (shadcn/ui, base Radix). Ils ont été modifiés : 44 px de haut (`sm` à 36 px, 44 px sur écran tactile), arrondi de 10 px, bordure qui passe à l'encre au focus, contour de focus encre global, mouvement de 150 ms, pas de variante jaune.
-- **Ajouter un composant** : `npx shadcn@latest add <nom>`, puis relire le fichier créé et corriger ce qui ne respecte pas la charte (hauteurs inférieures à 44 px, `rounded-lg` ou `rounded-xl` à remplacer par la bonne valeur, anneaux de focus, `dark:` redondants, ombres sur ce qui ne flotte pas, `transition-all`).
+- **Ajouter un composant** : d'abord `npx shadcn@latest add <nom> --dry-run` (certains composants, comme la barre latérale, **écrasent** `button.tsx` et `input.tsx` avec les réglages par défaut de shadcn) ; puis `npx shadcn@latest add <nom>` ; si des fichiers adaptés ont été écrasés, les restaurer avec `git checkout -- src/components/ui/button.tsx src/components/ui/input.tsx` ; enfin relire le fichier créé, en lançant d'abord `grep -rnE "backdrop-|blur|gradient|drop-shadow" src/components/ui` (le verre dépoli, les dégradés et les halos sont interdits : le fond du tiroir de shadcn avait un `backdrop-blur`, repéré par CodeRabbit), et corriger ce qui ne respecte pas la charte (hauteurs inférieures à 44 px, `rounded-lg` ou `rounded-xl` à remplacer par la bonne valeur, anneaux de focus, `dark:` redondants, ombres sur ce qui ne flotte pas, `transition-all`).
 - **Arrondis** : `rounded-sm` 6 px, `rounded-md` 10 px (champs, boutons), `rounded-lg` 12 px (listes), `rounded-xl` 16 px (cartes, panneaux), `rounded-4xl` pilule.
 
 ## Accessibilité
@@ -98,6 +98,14 @@
 - Zones cliquables ≥ 44 px.
 - Les états ne reposent jamais sur la couleur seule : texte ou hachures en plus.
 - Vrais éléments HTML (`button`, `a`, `label`), pas de `div` cliquable.
+
+### Règles apprises en auditant le cadre d'une campagne (chapitre 6, axe-core)
+
+- **Caché à l'œil, pas aux lecteurs d'écran** : pour masquer un texte à l'écran (menu replié), utiliser `sr-only`, **jamais** `hidden` / `display: none`, qui le retire aussi des lecteurs d'écran. Un bouton dont le seul texte est en `hidden` n'a plus de nom accessible (erreur critique `button-name`).
+- **Repères** : une page a un `<main>` (fourni par `SidebarInset`), la barre latérale est un repère « complémentaire » étiqueté, ses liens sont dans un `<nav aria-label>`. Tout contenu doit être dans un repère.
+- **Lien d'évitement** « Aller au contenu » au tout début des pages avec un menu : sans lui, un utilisateur du clavier traverse tout le menu à chaque page.
+- **Menus ouverts** (Radix) : tant qu'un menu modal est ouvert, Radix masque volontairement le reste de la page aux lecteurs d'écran et piège le focus dedans. Les outils d'audit le signalent (`aria-hidden-focus`, « pas de `<main>` ») : c'est le comportement voulu. Pour un menu ouvert, on audite le menu lui-même.
+- **Mouvement réduit** : règle globale dans `globals.css` (durées quasi nulles) ; vérifiée sur la barre latérale (200 ms par défaut, 0,01 ms avec la préférence).
 
 ## Interdits (en plus de la liste du skill design)
 
