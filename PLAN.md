@@ -78,7 +78,7 @@ Agents (OpenAI Agents SDK)                 Outils (tools)
 | Table | Colonnes principales | Ch. |
 |---|---|---|
 | `user`, `session`, `account`, `verification` | Tables de Better Auth (générées par son CLI) : comptes, sessions en base, liaisons Google, codes de vérification | 3 |
-| `campaigns` | id, user_id, name, icon_url, office (`modern` / `wooden`), created_at | 5 |
+| `campaigns` | id (uuid), user_id (propriétaire, supprimé en cascade), name (1 à 60 caractères, contrôlé aussi par la base), icon (`icon:<nom>` icône proposée, `upload:<clé>` image téléversée, ou vide), office (`wooden` / `modern`, `wooden` par défaut), created_at (timestamptz). RLS activé | 5 |
 | `agent_messages` | id, campaign_id, agent, role (`user` / `assistant`), content, created_at — l'historique du chat | 9 |
 | `agent_plans` | id, campaign_id, request, plan (JSON), status, created_at | 10 |
 | `agent_tasks` | id, plan_id, agent, title, instruction, depends_on, status, output (JSON), repeat_interval, repeat_until, repeat_count, run_count, next_run_at | 10–11 |
@@ -190,13 +190,19 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - **Better Auth 1.7 : outil en ligne de commande** : il s’appelle `auth` (`npx auth generate`), l’ancien `@better-auth/cli` est bloqué en 1.4. Il régénère `src/db/auth-schema.ts` : ne pas le modifier à la main, puis `npm run db:generate` et `db:migrate`.
 - **Alertes `npm audit` (esbuild, 4 modérées)** : elles viennent de `drizzle-kit`, un outil de développement qui n’est pas dans l’application en production. Risque accepté : pas d’`audit fix --force`, qui casserait les versions. À revérifier à chaque mise à jour de `drizzle-kit`.
 - **Supabase et RLS** : les tables du schéma `public` sont exposées par la Data API de Supabase, que nous n’utilisons pas. Chaque nouvelle table doit activer RLS sans règle (voir `drizzle/0001_enable-rls.sql`). Notre serveur, propriétaire des tables, n’est pas concerné.
-- **Production serverless** : passer au Transaction pooler (port 6543) et ajouter `prepare: false` dans `src/db/index.ts` (chapitre 18).
+- **Production serverless et poolers Supabase** : en production, passer `DATABASE_URL` au Transaction pooler (port 6543). Mesuré au chapitre 5 : avec les requêtes préparées que `postgres.js` utilise par défaut, derrière le port 6543 les requêtes restent **sans réponse** (blocage silencieux, pas d'erreur). `src/db/index.ts` désactive donc `prepare` automatiquement quand l'adresse est sur le port 6543 ; testé avec le vrai module sur les deux poolers (requêtes simultanées et transaction avec verrou). **Les migrations (`npm run db:migrate`) doivent, elles, utiliser le Session pooler (5432)** : `drizzle-kit` a son propre client, qui n'a pas cette protection.
 - **« Mot de passe oublié »** : à ajouter quand un service d’envoi d’e-mails existera (chapitre 18 ou 19). Better Auth sait le faire, il lui faut une fonction `sendResetPassword`. Même chose pour la vérification de l’e-mail.
 - **Google OAuth en production** : ajouter l’adresse du site dans les origines autorisées et l’URI de rappel `https://…/api/auth/callback/google` (chapitre 18). Application en mode « test » : seuls les utilisateurs tests peuvent se connecter ; passer en production avant d’ouvrir au public.
 
 - **shadcn/ui : le code est à nous.** `npx shadcn add <composant>` copie le composant dans `src/components/ui/`, avec les réglages par défaut de shadcn (32 px, arrondi 12 px, anneau de focus pâle, noms de couleurs neutres). Il faut ensuite l'adapter à `docs/DESIGN.md` (voir « Implémentation » dans ce fichier). Les mises à jour de shadcn n'écrasent rien : on recopie à la main ce qui nous intéresse. Le paquet `shadcn` lui-même (la CLI, qui fournit aussi `shadcn/tailwind.css`) reste en `devDependencies` : il ne sert qu'à la compilation, et en production il apporterait trois alertes `npm audit` de gravité faible (`deepmerge`).
 - **Paquet `cn`** : la CLI de shadcn 4.x l'utilise à la place de `clsx` + `tailwind-merge` (même auteur, MIT, aucune dépendance). Vérifié au chapitre 4 ; on le garde, car chaque composant ajouté l'importe.
 - **`next-themes` 0.4.6** : dernière publication en mars 2025, mais très utilisé et compatible React 19. Si un jour il pose problème, le remplacer par un petit script maison (classe `dark` + `localStorage`).
+
+- **Téléversement de fichiers (chapitre 5)** : Next refuse par défaut un corps de Server Action de plus de 1 Mo ; `next.config.ts` le relève à 4 Mo (`experimental.serverActions.bodySizeLimit`). Le bucket Supabase n'impose ni taille ni type : tout est contrôlé côté serveur sur les **octets** reçus (`src/lib/logo-check.ts` : taille, signature PNG / JPEG / WebP). Le nom du fichier est généré par le serveur, jamais repris du navigateur. Un fichier supprimé du stockage peut rester servi par le CDN de Supabase pendant environ une minute s'il avait déjà été lu : sans conséquence pour des logos publics, mais à retenir pour des fichiers privés (chapitre 12 : utiliser des liens signés).
+
+- **Isolation des données (chapitre 6)** : au chapitre 6, la route `/dashboard/[campaignId]` doit chercher la campagne par `id` **et** `user_id`, et répondre 404 (`notFound()`) si elle n'existe pas ou n'appartient pas à l'utilisateur, sans distinguer les deux cas. Un identifiant qui n'est pas un UUID doit aussi donner 404, pas une erreur de base. À tester avec deux comptes, comme `getMyCampaigns` l'a été au chapitre 5.
+- **Redirection après connexion** : elle vit dans la page `/dashboard` (sans campagne, `redirect("/campaigns/new")`), pas dans les formulaires de connexion : le chemin est le même pour l'e-mail et pour Google. Au chapitre 6, « avec campagne » mènera à la vue d'ensemble de la dernière campagne ouverte.
+- **Tests de bout en bout** : un test avec un vrai navigateur a trouvé deux défauts que `tsc`, `lint` et `build` laissaient passer (bouton « Continuer » qui envoyait le formulaire, image du décor non chargée dans une zone cachée). Pour une page interactive, un test de ce type fait partie de « fini ».
 
 ## 9. Avancement
 
@@ -212,6 +218,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - [x] **Chapitre 2** : dépôt public GitHub, CodeRabbit, première pull request fusionnée (n° 1)
 - [x] **Chapitre 3** : Supabase (PostgreSQL 17) + Drizzle + Better Auth : migrations `0000_auth` et `0001_enable-rls`, pages `/sign-in` et `/sign-up` (règles de mot de passe CNIL), connexion Google, `/dashboard` protégé (proxy + `verifySession`)
 - [x] **Chapitre 4** : shadcn/ui (base Radix) avec la charte de `docs/DESIGN.md` : variables Jour/Nuit, composants `Button`, `Input`, `Label`, `DropdownMenu` adaptés (44 px, arrondi 10 px, focus encre), bouton Jour/Nuit (`next-themes`, classe `dark`)
+- [ ] **Chapitre 5** (en cours, branche `ch5-campagne`) : table `campaigns`, règles de validation, stockage S3 des logos, page `/campaigns/new` en 2 étapes, liste sur `/dashboard`, redirections. Reste : pull request et relecture
 - [ ] Phase 1 : [ ] 5 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)
