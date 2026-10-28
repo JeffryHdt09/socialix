@@ -34,7 +34,9 @@ const PLATFORMS: Record<string, string> = {
 
 // « instagram » → « Instagram ». Un réseau inconnu garde son nom avec une majuscule plutôt que de disparaître.
 export function platformLabel(platform: string): string {
-  return PLATFORMS[platform.toLowerCase()] ?? platform.charAt(0).toUpperCase() + platform.slice(1);
+  // Object.hasOwn : sans lui, « constructor » ou « toString » retrouveraient une fonction héritée d'Object au lieu du repli
+  const key = platform.toLowerCase();
+  return Object.hasOwn(PLATFORMS, key) ? PLATFORMS[key] : platform.charAt(0).toUpperCase() + platform.slice(1);
 }
 
 export const plural = (n: number, one: string, many: string) => (n > 1 ? many : one);
