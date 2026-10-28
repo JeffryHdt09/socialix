@@ -5,23 +5,23 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { agentPlans, agentTaskDependencies, agentTasks } from "@/db/schema";
-import { ownsCampaign } from "@/lib/ownership";
+import { ownsProject } from "@/lib/ownership";
 import type { CancelResult, PlanView } from "@/lib/plan-types";
 
 // Lecture et annulation des plans. Comme chat-service, ces fonctions prennent le propriétaire (`userId`) en paramètre :
 // l'action serveur et la DAL le tirent de la session, jamais d'une adresse ou d'un formulaire.
 
-// Les plans d'une campagne (les plus récents d'abord) avec leurs tâches et dépendances. Liste vide si la campagne n'est
-// pas à la personne. `onlyPlanId` : un seul plan (vérifié sur la campagne, pour qu'un identifiant d'une autre campagne ne passe pas).
-export async function readPlans(userId: string, campaignId: string, options: { limit?: number; onlyPlanId?: string } = {}): Promise<PlanView[]> {
+// Les plans d'un projet (les plus récents d'abord) avec leurs tâches et dépendances. Liste vide si le projet n'est
+// pas à la personne. `onlyPlanId` : un seul plan (vérifié sur le projet, pour qu'un identifiant d'une autre projet ne passe pas).
+export async function readPlans(userId: string, projectId: string, options: { limit?: number; onlyPlanId?: string } = {}): Promise<PlanView[]> {
   const { limit = 20, onlyPlanId } = options;
   if (onlyPlanId !== undefined && !z.uuid().safeParse(onlyPlanId).success) return [];
-  if (!(await ownsCampaign(userId, campaignId))) return [];
+  if (!(await ownsProject(userId, projectId))) return [];
 
   const plans = await db
     .select()
     .from(agentPlans)
-    .where(onlyPlanId ? and(eq(agentPlans.campaignId, campaignId), eq(agentPlans.id, onlyPlanId)) : eq(agentPlans.campaignId, campaignId))
+    .where(onlyPlanId ? and(eq(agentPlans.projectId, projectId), eq(agentPlans.id, onlyPlanId)) : eq(agentPlans.projectId, projectId))
     .orderBy(desc(agentPlans.createdAt), desc(agentPlans.id))
     .limit(limit);
   if (plans.length === 0) return [];
@@ -58,10 +58,10 @@ export async function readPlans(userId: string, campaignId: string, options: { l
 
 // Annule un plan actif : le plan et ses tâches PAS ENCORE TERMINÉES (en attente ou en cours). Une tâche déjà faite reste faite :
 // on n'efface jamais un résultat. Annuler un plan déjà annulé est sans effet (même résultat) ; un plan terminé ne s'annule pas.
-export async function cancelPlanAs(userId: string, campaignId: string, planId: string): Promise<CancelResult> {
+export async function cancelPlanAs(userId: string, projectId: string, planId: string): Promise<CancelResult> {
   const notFound = { ok: false, error: "Ce plan est introuvable." } as const;
-  const [current] = await readPlans(userId, campaignId, { onlyPlanId: planId });
-  if (!current) return notFound; // campagne d'un autre, plan d'une autre campagne, identifiant piégé : même réponse
+  const [current] = await readPlans(userId, projectId, { onlyPlanId: planId });
+  if (!current) return notFound; // projet d'un autre, plan d'une autre projet, identifiant piégé : même réponse
   if (current.status === "cancelled") return { ok: true, plan: current };
   if (current.status === "done") return { ok: false, error: "Ce plan est déjà terminé : il ne peut plus être annulé." };
 
@@ -71,13 +71,13 @@ export async function cancelPlanAs(userId: string, campaignId: string, planId: s
     const cancelled = await tx
       .update(agentPlans)
       .set({ status: "cancelled" })
-      .where(and(eq(agentPlans.id, planId), eq(agentPlans.campaignId, campaignId), eq(agentPlans.status, "active")))
+      .where(and(eq(agentPlans.id, planId), eq(agentPlans.projectId, projectId), eq(agentPlans.status, "active")))
       .returning({ id: agentPlans.id });
     if (cancelled.length > 0) {
       await tx.update(agentTasks).set({ status: "cancelled" }).where(and(eq(agentTasks.planId, planId), inArray(agentTasks.status, ["pending", "running"])));
     }
   });
-  const [after] = await readPlans(userId, campaignId, { onlyPlanId: planId });
+  const [after] = await readPlans(userId, projectId, { onlyPlanId: planId });
   return after ? { ok: true, plan: after } : notFound;
 }
 

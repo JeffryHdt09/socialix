@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 // Les trois cartes de chiffres de la vue d'ensemble (PAGES.md, fiche 4) : de tailles et de styles DIFFÉRENTS exprès,
 // pour que l'œil sache tout de suite laquelle compte le plus.
-// Règle de la charte : jamais de zéro trompeur. Une campagne sans aucun post affiche un tiret et une phrase qui dit
-// ce qui apparaîtra ; une campagne qui a des posts affiche le vrai chiffre, y compris 0.
+// Règle de la charte : jamais de zéro trompeur. Un projet sans aucun post affiche un tiret et une phrase qui dit
+// ce qui apparaîtra ; un projet qui a des posts affiche le vrai chiffre, y compris 0.
 // Les cartes sont des « groupes » étiquetés, pas des repères (<section>) : trois repères de plus, dont deux portant des noms
 // proches des listes (« À valider »), alourdiraient la navigation au lecteur d'écran (axe : landmark-unique).
 const BIG = "text-[64px] leading-none font-semibold tracking-tight tabular-nums";
@@ -74,7 +74,7 @@ export function ScheduledCard({ overview, className }: { overview: Overview; cla
 
 // La carte « À valider » est la SEULE de la page en jaune « signal » : elle signale qu'il y a quelque chose à faire.
 // Sans rien à relire, elle redevient une carte ordinaire : le jaune ne décore jamais.
-export function ReviewCard({ overview, campaignId }: { overview: Overview; campaignId: string }) {
+export function ReviewCard({ overview, projectId }: { overview: Overview; projectId: string }) {
   const n = overview.toReviewCount;
   const active = n > 0;
   return (
@@ -92,7 +92,7 @@ export function ReviewCard({ overview, campaignId }: { overview: Overview; campa
       </p>
       {active && (
         <Button asChild className="mt-5 self-start">
-          <Link href={`/dashboard/${campaignId}/posts`}>Relire maintenant</Link>
+          <Link href={`/dashboard/${projectId}/posts`}>Relire maintenant</Link>
         </Button>
       )}
     </div>

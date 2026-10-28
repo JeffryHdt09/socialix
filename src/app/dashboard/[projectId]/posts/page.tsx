@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Posts · Socialix" };
 export default function PostsPage() {
   return (
     <>
-      <PageHeader title="Posts" subtitle="Tous les posts de la campagne, à valider ou programmés." />
+      <PageHeader title="Posts" subtitle="Tous les posts du projet, à valider ou programmés." />
       <ComingSoon chapter="13" what="la liste des posts et leur éditeur" />
     </>
   );

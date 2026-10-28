@@ -4,10 +4,10 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 
 import { instructionsFor } from "@/lib/agent-instructions";
-import { AGENTS } from "@/lib/agents";
+import { workersFor } from "@/lib/agents";
 import { type ChatTurn, MAX_HISTORY, type ModelOptions, withModelFallback } from "@/lib/chat";
 import { CHAT_MODELS, getModel } from "@/lib/models";
-import { MAX_TASKS, type PlanDraft, planDraftSchema, type ValidPlan, validatePlan, WORKER_AGENTS } from "@/lib/plan";
+import { MAX_TASKS, type PlanDraft, planDraftSchema, type ValidPlan, validatePlan } from "@/lib/plan";
 
 // Le Maître (chapitre 10). À chaque message, il choisit UNE des trois actions :
 //   « answer » : répondre simplement ; « ask » : poser une question (la demande est trop floue) ; « plan » : produire un plan.
@@ -28,13 +28,9 @@ export class MasterPlanError extends Error {
   }
 }
 
-const workers = AGENTS.filter((a) => a.id !== "maitre")
-  .map((a) => `- ${a.id} (${a.name}) : ${a.role}`)
-  .join("\n");
-
 // Les consignes de planification, ajoutées à celles du rôle. La liste des agents est construite depuis les données (agents.ts) :
 // ajouter un agent ne demande pas de réécrire ce texte.
-const PLANNING_RULES = `Tu réponds UNIQUEMENT par un objet structuré avec trois champs : action, message, plan.
+const planningRules = (workers: string) => `Tu réponds UNIQUEMENT par un objet structuré avec trois champs : action, message, plan.
 
 Choisis l'action :
 - "answer" : question générale sur l'équipe ou sur son fonctionnement, ou échange qui ne demande aucun travail. plan vaut null.
@@ -63,7 +59,10 @@ export type MasterResult = {
 // Fait répondre le Maître. Un plan refusé par validatePlan lui est renvoyé avec la liste des défauts, jusqu'à MAX_CORRECTIONS fois.
 export async function runMaster(history: ChatTurn[], options: ModelOptions = {}): Promise<MasterResult> {
   const { models = CHAT_MODELS, modelFactory = getModel } = options;
-  const system = `${instructionsFor("maitre")}\n\n${PLANNING_RULES}`;
+  // Les agents que le Maître peut employer dépendent du projet : seulement ceux de ses équipes activées
+  const team = workersFor(options.teams);
+  const roster = team.map((a) => `- ${a.id} (${a.name}) : ${a.role}`).join("\n");
+  const system = `${instructionsFor("maitre", options.teams)}\n\n${planningRules(roster)}`;
   let turns: ChatTurn[] = history.slice(-MAX_HISTORY);
   let lastErrors: string[] = [];
 
@@ -78,7 +77,7 @@ export async function runMaster(history: ChatTurn[], options: ModelOptions = {})
       if (message.length > 0) return { action: out.action, message, model, corrections: attempt };
       lastErrors = ["Le message est vide : écris la réponse que la personne doit lire."];
     } else {
-      const checked = out.plan === null ? { ok: false as const, errors: ['action vaut "plan" mais le champ plan est null.'] } : validatePlan(out.plan, WORKER_AGENTS);
+      const checked = out.plan === null ? { ok: false as const, errors: ['action vaut "plan" mais le champ plan est null.'] } : validatePlan(out.plan, team.map((a) => a.id));
       if (checked.ok && message.length > 0) return { action: "plan", message, plan: checked.plan, rawPlan: out.plan!, model, corrections: attempt };
       lastErrors = checked.ok ? ["Le message est vide : résume le plan pour la personne."] : checked.errors;
     }

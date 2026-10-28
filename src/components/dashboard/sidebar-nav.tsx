@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
-import { CAMPAIGN_SECTIONS, type SectionSlug } from "@/lib/campaign-sections";
+import { PROJECT_SECTIONS, type SectionSlug } from "@/lib/project-sections";
 
 // Une icône par section. Record<SectionSlug, …> : TypeScript refuse de compiler si on ajoute une section au menu
 // sans lui donner son icône.
@@ -21,17 +21,17 @@ const ICONS: Record<SectionSlug, LucideIcon> = {
 
 // Les liens du menu. Pas de compteur (« 1 actif », « 3 à valider ») tant qu'il n'y a ni agent ni post : un faux
 // « 0 » serait un faux contenu (DESIGN.md). Ils arriveront avec les chapitres concernés.
-export function SidebarNav({ campaignId }: { campaignId: string }) {
+export function SidebarNav({ projectId }: { projectId: string }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
 
   return (
-    // <nav> étiqueté : un lecteur d'écran annonce « Navigation de la campagne » et propose d'y sauter.
-    <nav aria-label="Navigation de la campagne">
+    // <nav> étiqueté : un lecteur d'écran annonce « Navigation du projet » et propose d'y sauter.
+    <nav aria-label="Navigation du projet">
       <SidebarGroup>
         <SidebarMenu>
-          {CAMPAIGN_SECTIONS.map(({ slug, label }) => {
-            const href = `/dashboard/${campaignId}/${slug}`;
+          {PROJECT_SECTIONS.map(({ slug, label }) => {
+            const href = `/dashboard/${projectId}/${slug}`;
             const active = pathname === href;
             const Icon = ICONS[slug];
             return (

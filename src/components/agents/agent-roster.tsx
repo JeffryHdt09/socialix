@@ -1,23 +1,23 @@
 import Link from "next/link";
 
 import { StatusDot } from "@/components/agents/status-dot";
-import { AGENTS, type Agent, type AgentStatus, STATUS_LABEL } from "@/lib/agents";
+import { type Agent, type AgentStatus, STATUS_LABEL } from "@/lib/agents";
 import { cn } from "@/lib/utils";
 
 // La colonne de l'équipe : les agents, leur rôle et leur état en une ligne. L'agent ouvert est encadré (encre) avec une
 // barre jaune « signal » ; il est aussi marqué aria-current, donc jamais signalé par la couleur seule.
 // Chaque agent est un lien vers ?agent=… : l'adresse se partage et le bouton « retour » du navigateur fonctionne.
-export function AgentRoster({ current, campaignId, statuses = {} }: { current: Agent; campaignId: string; statuses?: Partial<Record<Agent["id"], AgentStatus>> }) {
+export function AgentRoster({ agents, current, projectId, statuses = {} }: { agents: readonly Agent[]; current: Agent; projectId: string; statuses?: Partial<Record<Agent["id"], AgentStatus>> }) {
   return (
     <nav aria-label="Équipe d’agents">
       <ul className="grid grid-cols-2 gap-2 @2xl:grid-cols-1">
-        {AGENTS.map((agent) => {
+        {agents.map((agent) => {
           const active = agent.id === current.id;
           const status = statuses[agent.id] ?? "idle";
           return (
             <li key={agent.id}>
               <Link
-                href={`/dashboard/${campaignId}/agents?agent=${agent.id}`}
+                href={`/dashboard/${projectId}/agents?agent=${agent.id}`}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "relative flex min-h-12 flex-col gap-0.5 overflow-hidden rounded-lg border p-3 pl-4 transition-colors duration-150",

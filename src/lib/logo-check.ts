@@ -1,4 +1,4 @@
-// Contrôle d'un logo de campagne, d'après les OCTETS reçus et non d'après ce que le navigateur annonce.
+// Contrôle d'un logo de projet, d'après les OCTETS reçus et non d'après ce que le navigateur annonce.
 // Un fichier nommé « logo.png » avec le type « image/png » peut contenir autre chose : seul son contenu compte.
 // Fichier volontairement sans dépendance, pour pouvoir le tester seul.
 

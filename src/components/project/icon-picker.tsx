@@ -1,7 +1,7 @@
 "use client";
 
-import { campaignIconList } from "@/components/campaign/campaign-icon";
-import type { CampaignIconKey } from "@/lib/campaign-rules";
+import { projectIconList } from "@/components/project/project-icon";
+import type { ProjectIconKey } from "@/lib/project-rules";
 
 // Grille de choix de l'icône. Ce sont de vrais boutons radio (un seul choix, flèches du clavier pour
 // passer de l'un à l'autre), cachés visuellement ; l'étiquette autour sert de bouton. Chaque icône a
@@ -10,12 +10,12 @@ export function IconPicker({
   value,
   onChange,
 }: {
-  value: CampaignIconKey | null;
-  onChange: (key: CampaignIconKey) => void;
+  value: ProjectIconKey | null;
+  onChange: (key: ProjectIconKey) => void;
 }) {
   return (
-    <div role="radiogroup" aria-label="Icône de la campagne" className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-      {campaignIconList.map(({ key, label, Icon }) => (
+    <div role="radiogroup" aria-label="Icône du projet" className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+      {projectIconList.map(({ key, label, Icon }) => (
         <label
           key={key}
           title={label}

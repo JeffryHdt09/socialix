@@ -5,8 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { startTransition } from "react";
 
-import { selectCampaign } from "@/app/dashboard/actions";
-import { CampaignAvatar } from "@/components/campaign/campaign-avatar";
+import { selectProject } from "@/app/dashboard/actions";
+import { ProjectAvatar } from "@/components/project/project-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,17 +16,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
-import type { CampaignIconKey } from "@/lib/campaign-rules";
+import type { ProjectIconKey } from "@/lib/project-rules";
 
-// Ce que le serveur transmet pour chaque campagne : de quoi dessiner son médaillon, rien d'autre.
-export type CampaignOption = { id: string; name: string; iconKey: CampaignIconKey | null; imageUrl: string | null };
+// Ce que le serveur transmet pour chaque projet : de quoi dessiner son médaillon, rien d'autre.
+export type ProjectOption = { id: string; name: string; iconKey: ProjectIconKey | null; imageUrl: string | null };
 
-// Sélecteur de campagne, en haut du menu : la campagne courante, la liste des autres, et « Nouvelle campagne ».
-export function CampaignSwitcher({ campaigns, currentId }: { campaigns: CampaignOption[]; currentId: string }) {
+// Sélecteur de projet, en haut du menu : le projet courant, la liste des autres, et « Nouveau projet ».
+export function ProjectSwitcher({ projects, currentId }: { projects: ProjectOption[]; currentId: string }) {
   const pathname = usePathname();
   const { isMobile } = useSidebar();
-  const current = campaigns.find((c) => c.id === currentId) ?? campaigns[0];
-  // /dashboard/<id>/<section> : on garde la section en changeant de campagne
+  const current = projects.find((c) => c.id === currentId) ?? projects[0];
+  // /dashboard/<id>/<section> : on garde la section en changeant de projet
   const section = pathname.split("/")[3] ?? "overview";
 
   return (
@@ -35,7 +35,7 @@ export function CampaignSwitcher({ campaigns, currentId }: { campaigns: Campaign
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton size="lg" tooltip={current.name} className="rounded-lg group-data-[collapsible=icon]:justify-center">
-              <CampaignAvatar name={current.name} iconKey={current.iconKey} imageUrl={current.imageUrl} className="size-8 rounded-md text-sm" />
+              <ProjectAvatar name={current.name} iconKey={current.iconKey} imageUrl={current.imageUrl} className="size-8 rounded-md text-sm" />
               {/* Replié, le nom est caché À L'ŒIL (sinon un bout dépasse à côté du médaillon) mais gardé pour les lecteurs
                   d'écran : « hidden » le retirerait aussi d'eux, et le bouton n'aurait plus aucun nom accessible. */}
               <span className="min-w-0 flex-1 truncate font-semibold group-data-[collapsible=icon]:sr-only">{current.name}</span>
@@ -43,24 +43,24 @@ export function CampaignSwitcher({ campaigns, currentId }: { campaigns: Campaign
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side={isMobile ? "bottom" : "right"} className="min-w-64">
-            <DropdownMenuLabel className="text-[13px] font-medium text-muted-foreground">Tes campagnes</DropdownMenuLabel>
-            {campaigns.map((campaign) => (
+            <DropdownMenuLabel className="text-[13px] font-medium text-muted-foreground">Tes projets</DropdownMenuLabel>
+            {projects.map((project) => (
               <DropdownMenuItem
-                key={campaign.id}
-                aria-current={campaign.id === currentId ? "true" : undefined}
-                // Choisir la campagne déjà ouverte ne fait rien ; sinon l'action serveur mémorise puis redirige.
-                onSelect={() => campaign.id !== currentId && startTransition(() => selectCampaign(campaign.id, section))}
+                key={project.id}
+                aria-current={project.id === currentId ? "true" : undefined}
+                // Choisir le projet déjà ouvert ne fait rien ; sinon l'action serveur mémorise puis redirige.
+                onSelect={() => project.id !== currentId && startTransition(() => selectProject(project.id, section))}
               >
-                <CampaignAvatar name={campaign.name} iconKey={campaign.iconKey} imageUrl={campaign.imageUrl} className="size-7 rounded-md text-[13px]" />
-                <span className="min-w-0 flex-1 truncate">{campaign.name}</span>
-                {campaign.id === currentId && <Check className="text-foreground" aria-label="Campagne ouverte" />}
+                <ProjectAvatar name={project.name} iconKey={project.iconKey} imageUrl={project.imageUrl} className="size-7 rounded-md text-[13px]" />
+                <span className="min-w-0 flex-1 truncate">{project.name}</span>
+                {project.id === currentId && <Check className="text-foreground" aria-label="Projet ouvert" />}
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/campaigns/new">
+              <Link href="/projects/new">
                 <Plus aria-hidden="true" />
-                Nouvelle campagne
+                Nouveau projet
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>

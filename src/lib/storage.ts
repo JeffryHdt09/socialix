@@ -56,7 +56,7 @@ const KEY_PATTERN = /^([A-Za-z0-9_-]{1,64})\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}
 
 // Envoie un logo déjà contrôlé (readLogoFile). Le nom est généré ici : on n'utilise JAMAIS celui du fichier
 // reçu, qui peut être piégé (« ../../x »). Le type vient de la signature du fichier, pas du navigateur.
-// Renvoie la clé de l'objet, à ranger dans campaigns.icon sous la forme « upload:<clé> ».
+// Renvoie la clé de l'objet, à ranger dans projects.icon sous la forme « upload:<clé> ».
 export async function uploadLogo(userId: string, logo: LogoFile): Promise<string> {
   if (!SAFE_USER_ID.test(userId)) throw new Error("Identifiant d'utilisateur inattendu.");
   const key = `${userId}/${randomUUID()}.${logo.extension}`;

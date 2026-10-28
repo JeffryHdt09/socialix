@@ -26,12 +26,14 @@ Développement logiciel · Audio (transcription, traduction, sous-titres, voix d
 
 Chaque domaine = une **équipe** (un contexte, des agents, des outils). Ajouter un domaine ne doit pas demander de réécrire le moteur.
 
+**Un projet choisit ses domaines** (colonne `projects.teams`, chapitre 10b) : il dispose des agents communs (Maître, Recherche) et de ceux de chaque domaine activé. Deux domaines déjà présents : marketing et audio-description. Un agent n'est utile que par ses outils : sans outils (chapitre 12), les agents d'un nouveau domaine discutent et conseillent seulement.
+
 ## Les workflows visés
 
 - **Idée → logiciel** : analyse, recherche, architecture, développement par petites fonctionnalités, tests, documentation. Points de contrôle : architecture, tests, mise en production.
 - **Trouver des clients** : veille des besoins, qualification, estimation, proposition personnalisée, suivi, mesure des résultats. Une proposition précise à un problème précis, pas des envois en masse.
 - **Service audio** : un fichier déposé → vérification, transcription, correction, traduction, sous-titres (SRT/VTT), voix de synthèse, contrôle qualité, dossier de livraison.
-- **Campagne marketing complète** : brief, audience, stratégie, scripts, visuels, déclinaisons, contrôle qualité, rapport. Aucune publication ni dépense sans autorisation.
+- **Projet marketing complète** : brief, audience, stratégie, scripts, visuels, déclinaisons, contrôle qualité, rapport. Aucune publication ni dépense sans autorisation.
 - **Micro-logiciel par abonnement** : problème récurrent, **validation de la demande avant d'investir**, prototype, tests, paiement et accès, lancement, support.
 - **Administration** : commande, dossier, devis, échéances, facture, suivi des paiements, archivage. Les paiements et décisions financières restent soumis à validation.
 - **Amélioration continue du système** : voir ci-dessus.

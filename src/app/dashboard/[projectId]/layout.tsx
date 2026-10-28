@@ -4,27 +4,27 @@ import { Suspense } from "react";
 import { AppSidebar } from "@/components/dashboard/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { avatarPropsFor } from "@/lib/campaign-avatar-props";
-import { getMyCampaigns, requireMyCampaign, verifySession } from "@/lib/dal";
+import { avatarPropsFor } from "@/lib/project-avatar-props";
+import { getMyProjects, requireMyProject, verifySession } from "@/lib/dal";
 
-// Cadre commun des pages d'une campagne (PAGES.md, fiche 3) : menu latéral à gauche, pages à droite.
-// Avant d'afficher quoi que ce soit, il vérifie que la campagne existe ET appartient à l'utilisateur connecté.
-export default function CampaignLayout({ children, params }: LayoutProps<"/dashboard/[campaignId]">) {
+// Cadre commun des pages d'un projet (PAGES.md, fiche 3) : menu latéral à gauche, pages à droite.
+// Avant d'afficher quoi que ce soit, il vérifie que le projet existe ET appartient à l'utilisateur connecté.
+export default function ProjectLayout({ children, params }: LayoutProps<"/dashboard/[projectId]">) {
   // Lire params, la session et les cookies se fait à chaque requête : derrière un <Suspense> (Cache Components).
   return (
     <Suspense fallback={<ShellSkeleton />}>
-      <CampaignShell params={params}>{children}</CampaignShell>
+      <ProjectShell params={params}>{children}</ProjectShell>
     </Suspense>
   );
 }
 
-async function CampaignShell({ children, params }: { children: React.ReactNode; params: LayoutProps<"/dashboard/[campaignId]">["params"] }) {
-  const { campaignId } = await params;
+async function ProjectShell({ children, params }: { children: React.ReactNode; params: LayoutProps<"/dashboard/[projectId]">["params"] }) {
+  const { projectId } = await params;
   // Introuvable, pas à soi, ou identifiant qui n'est pas un UUID : le même écran « introuvable » dans les
-  // trois cas (voir getMyCampaign). Rien des pages enfants n'est affiché avant ce contrôle.
-  const campaign = await requireMyCampaign(campaignId);
+  // trois cas (voir getMyProject). Rien des pages enfants n'est affiché avant ce contrôle.
+  const project = await requireMyProject(projectId);
   const { user } = await verifySession();
-  const campaigns = await getMyCampaigns();
+  const projects = await getMyProjects();
 
   // Menu replié par défaut (PAGES.md). Le composant mémorise le choix dans le cookie « sidebar_state » ;
   // on le relit ici pour que le serveur dessine directement le bon état, sans éclair au chargement.
@@ -45,8 +45,8 @@ async function CampaignShell({ children, params }: { children: React.ReactNode; 
         <AppSidebar
           // Le médaillon est calculé ici, côté serveur (l'adresse du logo vient du module de stockage) :
           // le navigateur ne reçoit que des données simples.
-          campaigns={campaigns.map((c) => ({ id: c.id, ...avatarPropsFor(c) }))}
-          currentId={campaign.id}
+          projects={projects.map((c) => ({ id: c.id, ...avatarPropsFor(c) }))}
+          currentId={project.id}
           user={{ name: user.name, email: user.email }}
         />
         <SidebarInset>

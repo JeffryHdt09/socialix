@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { APP_TIMEZONE } from "@/lib/dates";
 
-// Les calculs de la vue d'ensemble d'une campagne (PAGES.md, fiche 4). Toutes les dates sont stockées en UTC ;
+// Les calculs de la vue d'ensemble d'un projet (PAGES.md, fiche 4). Toutes les dates sont stockées en UTC ;
 // « aujourd'hui » et le découpage en jours se font dans le fuseau de l'utilisateur (PLAN.md : Europe/Paris par
 // défaut). Sans cela, un post programmé à 00 h 30 heure de Paris tomberait la veille, puisqu'il est 23 h 30 en UTC.
 export const OVERVIEW_TIMEZONE = APP_TIMEZONE;
@@ -18,7 +18,7 @@ export type OverviewDay = {
 };
 export type ReviewItem = { id: string; title: string; platforms: string[]; scheduledAt: Date | null; imageUrl: string | null };
 export type Overview = {
-  // Tous les posts de la campagne, tous statuts confondus : distingue « campagne vide » de « rien à relire ».
+  // Tous les posts du projet, tous statuts confondus : distingue « projet vide » de « rien à relire ».
   totalPosts: number;
   scheduledNext7Days: number;
   strip: OverviewDay[]; // toujours 7 jours, aujourd'hui compris, même sans aucun post
@@ -27,10 +27,10 @@ export type Overview = {
   toReview: ReviewItem[]; // les 5 premiers à relire
 };
 
-// ATTENTION : cette fonction ne vérifie PAS que la campagne appartient à l'utilisateur connecté. Elle ne doit être
+// ATTENTION : cette fonction ne vérifie PAS que le projet appartient à l'utilisateur connecté. Elle ne doit être
 // appelée que par getOverview (src/lib/dal.ts), qui le vérifie avant. « now » est un paramètre pour pouvoir tester
 // avec une date fixe.
-export async function queryOverviewUnchecked(campaignId: string, now: Date = new Date()): Promise<Overview> {
+export async function queryOverviewUnchecked(projectId: string, now: Date = new Date()): Promise<Overview> {
   const nowIso = now.toISOString();
   const tz = OVERVIEW_TIMEZONE;
 
@@ -46,7 +46,7 @@ export async function queryOverviewUnchecked(campaignId: string, now: Date = new
              (${nowIso}::timestamptz at time zone ${tz})::date + 6,
              interval '1 day') as d
       left join posts p
-        on p.campaign_id = ${campaignId}::uuid
+        on p.project_id = ${projectId}::uuid
        and p.status in ('scheduled', 'draft', 'to_review')
        and (p.scheduled_at at time zone ${tz})::date = d::date
       group by d
@@ -58,11 +58,11 @@ export async function queryOverviewUnchecked(campaignId: string, now: Date = new
                                 and scheduled_at >= ${nowIso}::timestamptz - interval '30 days'
                                 and scheduled_at <= ${nowIso}::timestamptz)::int as published_30
       from posts
-      where campaign_id = ${campaignId}::uuid`),
+      where project_id = ${projectId}::uuid`),
     db
       .select({ id: posts.id, title: posts.title, platforms: posts.platforms, scheduledAt: posts.scheduledAt, imageUrl: posts.imageUrl })
       .from(posts)
-      .where(and(eq(posts.campaignId, campaignId), eq(posts.status, "to_review")))
+      .where(and(eq(posts.projectId, projectId), eq(posts.status, "to_review")))
       // Les plus proches d'abord ; ceux sans date à la fin
       .orderBy(sql`${posts.scheduledAt} asc nulls last`, asc(posts.createdAt))
       .limit(5),

@@ -1,5 +1,5 @@
 // Filtre contre l'injection de consignes (idée reprise d'Hermes Agent). Il sert pour tout texte qui va ENTRER dans le prompt
-// d'un agent sans avoir été écrit par nous : mémoire de campagne, page web lue par le Chercheur, contenu d'un fichier.
+// d'un agent sans avoir été écrit par nous : mémoire de projet, page web lue par le Chercheur, contenu d'un fichier.
 // Fonction pure (aucun accès réseau ni base) : elle se teste seule.
 //
 // Honnêteté : c'est un garde-fou par motifs, pas une preuve. Il attrape les attaques courantes, pas les tournures inédites.

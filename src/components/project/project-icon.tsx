@@ -14,11 +14,11 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 
-import { CAMPAIGN_ICON_KEYS, type CampaignIconKey } from "@/lib/campaign-rules";
+import { PROJECT_ICON_KEYS, type ProjectIconKey } from "@/lib/project-rules";
 
-// Les icônes proposées pour une campagne : clé stockée, dessin (lucide-react) et libellé français.
-// Record<CampaignIconKey, …> oblige à couvrir toutes les clés de campaign-rules.ts.
-export const campaignIcons: Record<CampaignIconKey, { label: string; Icon: LucideIcon }> = {
+// Les icônes proposées pour un projet : clé stockée, dessin (lucide-react) et libellé français.
+// Record<ProjectIconKey, …> oblige à couvrir toutes les clés de project-rules.ts.
+export const projectIcons: Record<ProjectIconKey, { label: string; Icon: LucideIcon }> = {
   coffee: { label: "Café", Icon: Coffee },
   store: { label: "Boutique", Icon: Store },
   flower: { label: "Fleurs", Icon: Flower2 },
@@ -33,5 +33,5 @@ export const campaignIcons: Record<CampaignIconKey, { label: string; Icon: Lucid
   paw: { label: "Animaux", Icon: PawPrint },
 };
 
-// Même ordre que CAMPAIGN_ICON_KEYS, pour afficher la grille de choix.
-export const campaignIconList = CAMPAIGN_ICON_KEYS.map((key) => ({ key, ...campaignIcons[key] }));
+// Même ordre que PROJECT_ICON_KEYS, pour afficher la grille de choix.
+export const projectIconList = PROJECT_ICON_KEYS.map((key) => ({ key, ...projectIcons[key] }));

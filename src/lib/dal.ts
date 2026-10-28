@@ -7,7 +7,7 @@ import { cache } from "react";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { campaigns } from "@/db/schema";
+import { projects } from "@/db/schema";
 import { auth } from "@/lib/auth";
 import { readConversation } from "@/lib/chat-service";
 import { readPlans } from "@/lib/plan-queries";
@@ -25,52 +25,52 @@ export const verifySession = cache(async () => {
   return session;
 });
 
-// Les campagnes de l'utilisateur connecté, la plus récente d'abord.
+// Les projets de l'utilisateur connecté, le plus récent d'abord.
 // Aucun paramètre « userId » : le propriétaire vient de la session, jamais de l'appelant. Il est donc
-// impossible, par construction, de demander les campagnes de quelqu'un d'autre avec cette fonction.
-export const getMyCampaigns = cache(async () => {
+// impossible, par construction, de demander les projets de quelqu'un d'autre avec cette fonction.
+export const getMyProjects = cache(async () => {
   const { user } = await verifySession();
-  return db.select().from(campaigns).where(eq(campaigns.userId, user.id)).orderBy(desc(campaigns.createdAt));
+  return db.select().from(projects).where(eq(projects.userId, user.id)).orderBy(desc(projects.createdAt));
 });
 
-// UNE campagne de l'utilisateur connecté, ou null. L'identifiant vient d'une adresse, donc d'un inconnu :
+// UN projet de l'utilisateur connecté, ou null. L'identifiant vient d'une adresse, donc d'un inconnu :
 // - il doit avoir la forme d'un UUID, sinon on ne demande même pas à la base (une chaîne piégée ne l'atteint pas) ;
-// - la recherche porte sur l'identifiant ET le propriétaire (la session) : une campagne d'un autre ne se trouve pas.
-// Dans les deux cas, le résultat est le même null : on ne révèle jamais qu'une campagne existe chez quelqu'un d'autre.
-export const getMyCampaign = cache(async (campaignId: string) => {
+// - la recherche porte sur l'identifiant ET le propriétaire (la session) : un projet d'un autre ne se trouve pas.
+// Dans les deux cas, le résultat est le même null : on ne révèle jamais qu'un projet existe chez quelqu'un d'autre.
+export const getMyProject = cache(async (projectId: string) => {
   const { user } = await verifySession();
-  if (!z.uuid().safeParse(campaignId).success) return null;
-  const [campaign] = await db
+  if (!z.uuid().safeParse(projectId).success) return null;
+  const [project] = await db
     .select()
-    .from(campaigns)
-    .where(and(eq(campaigns.id, campaignId), eq(campaigns.userId, user.id)))
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
     .limit(1);
-  return campaign ?? null;
+  return project ?? null;
 });
 
-// Pour une page ou un layout : la campagne, ou l'écran « introuvable » (404). À appeler au début de chaque
-// page d'une campagne.
-export async function requireMyCampaign(campaignId: string) {
-  const campaign = await getMyCampaign(campaignId);
-  if (!campaign) notFound();
-  return campaign;
+// Pour une page ou un layout : le projet, ou l'écran « introuvable » (404). À appeler au début de chaque
+// page d'un projet.
+export async function requireMyProject(projectId: string) {
+  const project = await getMyProject(projectId);
+  if (!project) notFound();
+  return project;
 }
 
-// Les chiffres de la vue d'ensemble d'une campagne. La propriété est vérifiée ICI, avant toute lecture des posts :
+// Les chiffres de la vue d'ensemble d'un projet. La propriété est vérifiée ICI, avant toute lecture des posts :
 // queryOverviewUnchecked ne le fait pas (voir son avertissement), il ne doit être appelé que par cette fonction.
-export const getOverview = cache(async (campaignId: string) => {
-  await requireMyCampaign(campaignId);
-  return queryOverviewUnchecked(campaignId);
+export const getOverview = cache(async (projectId: string) => {
+  await requireMyProject(projectId);
+  return queryOverviewUnchecked(projectId);
 });
 
-// La conversation de l'utilisateur connecté avec un agent d'une de ses campagnes (liste vide si la campagne n'est pas à lui).
-export const getConversation = cache(async (campaignId: string, agentId: string) => {
+// La conversation de l'utilisateur connecté avec un agent d'une de ses projets (liste vide si le projet n'est pas à lui).
+export const getConversation = cache(async (projectId: string, agentId: string) => {
   const { user } = await verifySession();
-  return readConversation(user.id, campaignId, agentId);
+  return readConversation(user.id, projectId, agentId);
 });
 
-// Les plans du Maître pour une campagne de l'utilisateur connecté (liste vide si la campagne n'est pas à lui).
-export const getPlans = cache(async (campaignId: string) => {
+// Les plans du Maître pour un projet de l'utilisateur connecté (liste vide si le projet n'est pas à lui).
+export const getPlans = cache(async (projectId: string) => {
   const { user } = await verifySession();
-  return readPlans(user.id, campaignId);
+  return readPlans(user.id, projectId);
 });

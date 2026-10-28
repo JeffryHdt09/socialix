@@ -26,9 +26,9 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="rounded-xl border border-dashed border-border p-5 text-[15px] text-muted-foreground">{children}</p>;
 }
 
-type Props = { agent: Agent; campaignId: string; initialMessages: ChatMessage[]; initialPlans: PlanView[] };
+type Props = { agent: Agent; projectId: string; initialMessages: ChatMessage[]; initialPlans: PlanView[] };
 
-export function AgentTabs({ agent, campaignId, initialMessages, initialPlans }: Props) {
+export function AgentTabs({ agent, projectId, initialMessages, initialPlans }: Props) {
   // Les plans vivent ICI : la discussion (carte du plan sous la réponse du Maître) et l'onglet Tâches montrent les mêmes
   // plans, donc annuler dans l'un met l'autre à jour sans rechargement.
   const [plans, setPlans] = useState(initialPlans);
@@ -58,7 +58,7 @@ export function AgentTabs({ agent, campaignId, initialMessages, initialPlans }: 
       {/* forceMount : la discussion reste en mémoire quand on change d'onglet (sinon elle repartirait de la liste du serveur et
           perdrait ce qu'on vient d'écrire) ; data-[state=inactive]:hidden la masque tant qu'elle n'est pas l'onglet courant. */}
       <Tabs.Content value="discussion" forceMount className={cn(PANEL, "data-[state=inactive]:hidden")}>
-        <AgentChat agent={agent} campaignId={campaignId} initialMessages={initialMessages} plans={plans} onPlanChange={upsert} />
+        <AgentChat agent={agent} projectId={projectId} initialMessages={initialMessages} plans={plans} onPlanChange={upsert} />
       </Tabs.Content>
       <Tabs.Content value="taches" className={cn("flex flex-col gap-4", PANEL)}>
         <h2 className="text-[13px] font-medium text-muted-foreground">{isMaster ? "Plans de l’équipe" : `Tâches confiées à ${agent.name}`}</h2>
@@ -69,7 +69,7 @@ export function AgentTabs({ agent, campaignId, initialMessages, initialPlans }: 
               : `Aucune tâche confiée à ${agent.name} pour l’instant. Quand le Maître l’inclura dans un plan, elle apparaîtra ici avec son état.`}
           </Empty>
         ) : (
-          visible.map((p) => <PlanCard key={p.id} plan={p} campaignId={campaignId} onChange={upsert} onlyAgent={isMaster ? undefined : agent.id} />)
+          visible.map((p) => <PlanCard key={p.id} plan={p} projectId={projectId} onChange={upsert} onlyAgent={isMaster ? undefined : agent.id} />)
         )}
       </Tabs.Content>
       <Tabs.Content value="historique" className={PANEL}>

@@ -18,13 +18,13 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 type Props = {
   plan: PlanView;
-  campaignId: string;
+  projectId: string;
   onChange: (plan: PlanView) => void;
   // Si fourni : on n'affiche que les tâches de cet agent (onglet Tâches d'un agent de travail), sans le bouton d'annulation
   onlyAgent?: string;
 };
 
-export function PlanCard({ plan, campaignId, onChange, onlyAgent }: Props) {
+export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export function PlanCard({ plan, campaignId, onChange, onlyAgent }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const result = await cancelPlan(campaignId, plan.id);
+      const result = await cancelPlan(projectId, plan.id);
       if (result.ok) {
         onChange(result.plan);
         setConfirming(false);

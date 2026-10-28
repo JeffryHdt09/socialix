@@ -4,13 +4,19 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { campaigns } from "@/db/schema";
+import { projects } from "@/db/schema";
+import { activeTeams, type ActiveTeamId } from "@/lib/agents";
 
-// La campagne est-elle bien à cette personne ? Même règle d'isolation que partout : identifiant ET propriétaire.
+// Ce projet est-il bien à cette personne ? Même règle d'isolation que partout : identifiant ET propriétaire.
 // L'identifiant vient d'une adresse ou d'un formulaire : s'il n'a pas la forme d'un UUID, on ne le donne même pas à la base.
 // À n'appeler qu'avec un `userId` pris dans la SESSION.
-export async function ownsCampaign(userId: string, campaignId: string): Promise<boolean> {
-  if (!z.uuid().safeParse(campaignId).success) return false;
-  const [row] = await db.select({ id: campaigns.id }).from(campaigns).where(and(eq(campaigns.id, campaignId), eq(campaigns.userId, userId))).limit(1);
-  return !!row;
+// Renvoie aussi les équipes activées : c'est d'elles que dépendent les agents que le projet peut employer.
+export async function getOwnedProject(userId: string, projectId: string): Promise<{ id: string; teams: ActiveTeamId[] } | null> {
+  if (!z.uuid().safeParse(projectId).success) return null;
+  const [row] = await db.select({ id: projects.id, teams: projects.teams }).from(projects).where(and(eq(projects.id, projectId), eq(projects.userId, userId))).limit(1);
+  return row ? { id: row.id, teams: activeTeams(row.teams) } : null;
+}
+
+export async function ownsProject(userId: string, projectId: string): Promise<boolean> {
+  return (await getOwnedProject(userId, projectId)) !== null;
 }

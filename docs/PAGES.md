@@ -9,8 +9,8 @@
 
 ```text
 /sign-in, /sign-up                     → 1. Connexion
-/campaigns/new                         → 2. Création de campagne
-/dashboard/[campaignId]/…              → 3. Cadre commun (menu + en-tête) autour de :
+/projects/new                         → 2. Création de projet
+/dashboard/[projectId]/…              → 3. Cadre commun (menu + en-tête) autour de :
     overview                           → 4. Vue d'ensemble
     agents                             → 5. Agents IA
     posts                              → 6. Posts
@@ -34,31 +34,31 @@
 
 **États :** chargement sur le bouton cliqué (texte « Connexion… », bouton désactivé) · erreur « E-mail ou mot de passe incorrect » sous le formulaire · e-mail déjà utilisé à l'inscription · échec Google (« La connexion avec Google a échoué, réessaie »).
 
-**Après connexion :** aucune campagne → `/campaigns/new` ; sinon → vue d'ensemble de la dernière campagne ouverte.
+**Après connexion :** aucun projet → `/projects/new` ; sinon → vue d'ensemble de la dernière projet ouverte.
 
 ---
 
-## 2. Création de campagne · ch. 5
+## 2. Création de projet · ch. 5
 
-**Rôle :** créer un espace de travail (une campagne = une marque ou un client).
+**Rôle :** créer un espace de travail (un projet = une marque ou un client).
 
 **Contenu :** une carte centrée, **sans défilement**, avec un indicateur d'étapes « 1 Identité · 2 Bureau ».
-- **Étape 1 · Identité** : nom de la campagne (obligatoire), logo : choisir parmi quelques icônes proposées **ou** téléverser une image (PNG, JPG ou WebP, 3 Mo max), avec aperçu immédiat. Bouton « Continuer ».
-- **Étape 2 · Bureau** : deux grandes vignettes cliquables, **Atelier bois** et **Bureau moderne**, avec un aperçu des agents en place. Boutons « Retour » et **Créer la campagne**.
+- **Étape 1 · Identité** : nom du projet (obligatoire), logo : choisir parmi quelques icônes proposées **ou** téléverser une image (PNG, JPG ou WebP, 3 Mo max), avec aperçu immédiat. Bouton « Continuer ».
+- **Étape 2 · Bureau** : deux grandes vignettes cliquables, **Atelier bois** et **Bureau moderne**, avec un aperçu des agents en place. Boutons « Retour » et **Créer le projet**.
 
-**États :** nom vide (message sous le champ) · fichier trop lourd ou mauvais format (« 3 Mo maximum, PNG, JPG ou WebP ») · téléversement en cours (barre fine) · création en cours · erreur serveur (« La campagne n'a pas pu être créée, réessaie »).
+**États :** nom vide (message sous le champ) · fichier trop lourd ou mauvais format (« 3 Mo maximum, PNG, JPG ou WebP ») · téléversement en cours (barre fine) · création en cours · erreur serveur (« Le projet n'a pas pu être créée, réessaie »).
 
-**Après création :** vue d'ensemble de la nouvelle campagne.
+**Après création :** vue d'ensemble de la nouveau projet.
 
 ---
 
 ## 3. Cadre commun : menu et en-tête · ch. 6
 
-**Rôle :** naviguer et garder le contexte (quelle campagne, que faut-il faire).
+**Rôle :** naviguer et garder le contexte (quelle projet, que faut-il faire).
 
 **Menu latéral :**
 - **Replié par défaut** (icônes seules, info-bulle au survol), dépliable par un bouton. Le choix est mémorisé.
-- En haut : logo + **sélecteur de campagne** (liste des campagnes + « Nouvelle campagne »).
+- En haut : logo + **sélecteur de projet** (liste des projets + « Nouveau projet »).
 - Liens : Vue d'ensemble · Agents IA (« 1 actif ») · Posts (nombre à valider) · Calendrier · Analytique · Comptes · Réglages. Compteurs en mono. Lien actif = pilule encre.
 - En bas : carte accent **« Équipe IA »** (pastille qui respire si un agent travaille, lien « N posts à valider »), puis le profil (nom, menu : thème Jour/Nuit, déconnexion).
 
@@ -71,7 +71,7 @@
 - Pas de champ de recherche : rien à chercher avant le chapitre 13.
 - « Créer un post » : « Avec l'équipe IA » mène à la page Agents ; « À la main » est grisé, « Bientôt » (l'éditeur arrive au chapitre 13).
 - Le profil contient le choix du thème Jour / Nuit / Système et la déconnexion.
-- Changer de campagne dans le sélecteur garde la même section et mémorise la campagne.
+- Changer de projet dans le sélecteur garde la même section et mémorise le projet.
 
 ---
 
@@ -79,7 +79,7 @@
 
 > **Réalisée au chapitre 7**, avec trois écarts assumés : les agents du bureau ne sont pas cliquables avant le chapitre 8 (pas de panneau de chat encore) ; « Activité récente » affiche un état vide honnête jusqu'aux chapitres 10-11 ; pas d'emoji sur les étiquettes, conformément à DESIGN.md.
 
-**Rôle :** voir en 5 secondes où en est la campagne et ce qui attend une décision.
+**Rôle :** voir en 5 secondes où en est le projet et ce qui attend une décision.
 
 **Contenu (maquette « Jour ») :**
 - Trois cartes de tailles et de styles **différents** : « Programmés cette semaine » (gros chiffre + bande des 7 jours, jours non validés hachurés) · **« À valider »** en accent (chiffre + « Relire maintenant ») · « Publiés · 30 derniers jours ».
@@ -88,7 +88,7 @@
 
 **Interactions :** cliquer sur un agent dans le bureau ouvre un **panneau de chat à gauche** (même composant que la page Agents), sans quitter la page. Survol d'un agent : son étiquette indique ce qu'il fait (« Rédige le post 2 »).
 
-**États :** nouvelle campagne → état vide : « Rien de prévu pour l'instant » avec deux boutons, « Demander à l'équipe IA » et « Créer un post ». Statistiques avant toute publication : tiret + phrase explicative, jamais de zéro trompeur.
+**États :** nouveau projet → état vide : « Rien de prévu pour l'instant » avec deux boutons, « Demander à l'équipe IA » et « Créer un post ». Statistiques avant toute publication : tiret + phrase explicative, jamais de zéro trompeur.
 
 ---
 
@@ -96,7 +96,7 @@
 
 > **Plans du Maître (chapitre 10)** : la carte du plan (tâches numérotées « 01 », agent, état en texte, « après 02 », consigne dépliable, « Annuler le plan » avec confirmation) s'affiche sous la réponse du Maître et dans l'onglet Tâches (tous les plans pour le Maître, uniquement ses tâches pour un agent de travail). L'état est partagé entre les deux sans rechargement.
 >
-> **Interface réalisée au chapitre 8**, **chat branché à Gemini au chapitre 9** (messages enregistrés par campagne et par agent, réponse mise en forme, erreurs et quota annoncés sans perdre le texte). Équipe, 4 onglets, journal restent honnêtement vides là où il n'y a pas encore de données. L'agent ouvert est dans l'adresse (`?agent=`). Écarts assumés : le chat n'a ni bulles ni carte de plan (il n'y a rien à y afficher avant le chapitre 9) ; les onglets Tâches, Historique et Réglages affichent un état vide qui dit à quel chapitre le contenu arrive ; le panneau du bureau (fiche 4) réutilise le même composant de chat.
+> **Interface réalisée au chapitre 8**, **chat branché à Gemini au chapitre 9** (messages enregistrés par projet et par agent, réponse mise en forme, erreurs et quota annoncés sans perdre le texte). Équipe, 4 onglets, journal restent honnêtement vides là où il n'y a pas encore de données. L'agent ouvert est dans l'adresse (`?agent=`). Écarts assumés : le chat n'a ni bulles ni carte de plan (il n'y a rien à y afficher avant le chapitre 9) ; les onglets Tâches, Historique et Réglages affichent un état vide qui dit à quel chapitre le contenu arrive ; le panneau du bureau (fiche 4) réutilise le même composant de chat.
 
 **Rôle :** donner des consignes à l'équipe et suivre son travail.
 
@@ -190,10 +190,10 @@
 
 ## 11. Réglages · ch. 9, 14
 
-**Rôle :** configurer la campagne, les agents et les intégrations.
+**Rôle :** configurer le projet, les agents et les intégrations.
 
 **Sections (liste à gauche, contenu à droite) :**
-- **Campagne** : nom, logo, bureau, fuseau horaire par défaut.
+- **Projet** : nom, logo, bureau, fuseau horaire par défaut.
 - **Intégrations** : clé du service de publication (champ masqué, « enregistrée et chiffrée », boutons **Tester la connexion** et Remplacer), clé ImageKit si nécessaire.
 - **Agents** : instructions de rôle de chaque agent, limite de tâches simultanées.
 - **Espace client** (ch. 19) : activer la validation client, générer ou révoquer le lien.
@@ -207,7 +207,7 @@
 
 **Rôle :** permettre au client de valider ses posts **sans créer de compte**, via un lien privé.
 
-**Contenu :** en-tête aux couleurs du client (logo de la campagne, nom), puis la phrase « [N] posts attendent ta validation ». Pour chaque post : grand aperçu tel qu'il sera publié, date prévue, boutons **Valider** et **Demander une modification**, qui ouvre un champ de commentaire. Toujours en thème **Jour**, sans menu ni jargon technique.
+**Contenu :** en-tête aux couleurs du client (logo du projet, nom), puis la phrase « [N] posts attendent ta validation ». Pour chaque post : grand aperçu tel qu'il sera publié, date prévue, boutons **Valider** et **Demander une modification**, qui ouvre un champ de commentaire. Toujours en thème **Jour**, sans menu ni jargon technique.
 
 **États :** lien expiré ou révoqué (« Ce lien n'est plus valide, contacte [nom de l'agence] ») · tout est validé (« Merci, tout est validé ») · erreur d'envoi du commentaire.
 
