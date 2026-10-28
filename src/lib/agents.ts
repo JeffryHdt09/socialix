@@ -20,3 +20,11 @@ export const STATUS_LABEL: Record<AgentStatus, string> = {
   done: "Terminé",
   blocked: "Bloqué, attend une réponse",
 };
+
+export type Agent = (typeof AGENTS)[number];
+
+// Retrouve un agent à partir d'une valeur venue de l'adresse (?agent=…, ?chat=…) : n'importe quel texte peut s'y
+// trouver, donc on ne renvoie un agent que si l'identifiant existe vraiment.
+export function findAgent(value: unknown): Agent | undefined {
+  return typeof value === "string" ? AGENTS.find((a) => a.id === value) : undefined;
+}

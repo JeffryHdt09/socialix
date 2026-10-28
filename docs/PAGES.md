@@ -94,6 +94,8 @@
 
 ## 5. Agents IA · ch. 8 à 12 (Ordinateur : ch. 17)
 
+> **Interface réalisée au chapitre 8**, sans IA : équipe, 4 onglets, chat désactivé, journal vide. L'agent ouvert est dans l'adresse (`?agent=`). Écarts assumés : le chat n'a ni bulles ni carte de plan (il n'y a rien à y afficher avant le chapitre 9) ; les onglets Tâches, Historique et Réglages affichent un état vide qui dit à quel chapitre le contenu arrive ; le panneau du bureau (fiche 4) réutilise le même composant de chat.
+
 **Rôle :** donner des consignes à l'équipe et suivre son travail.
 
 **Contenu (maquette « Nuit ») :**

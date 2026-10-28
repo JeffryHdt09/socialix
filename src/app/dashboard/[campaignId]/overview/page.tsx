@@ -1,30 +1,34 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { AgentChatSheet } from "@/components/agents/agent-chat-sheet";
 import { PublishedCard, ReviewCard, ScheduledCard } from "@/components/dashboard/overview-cards";
 import { ActivityList, EmptyBanner, ReviewList } from "@/components/dashboard/overview-lists";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { OfficeScene } from "@/components/office/office-scene";
+import { findAgent } from "@/lib/agents";
 import { getOverview } from "@/lib/dal";
 
 export const metadata: Metadata = { title: "Vue d’ensemble · Socialix" };
 
 // Vue d'ensemble d'une campagne (PAGES.md, fiche 4) : où en est la campagne, et ce qui attend une décision.
-export default function OverviewPage({ params }: PageProps<"/dashboard/[campaignId]/overview">) {
+export default function OverviewPage({ params, searchParams }: PageProps<"/dashboard/[campaignId]/overview">) {
   return (
     <>
       <PageHeader title="Vue d’ensemble" subtitle="Où en est la campagne et ce qui attend une décision." />
       {/* Les chiffres viennent de la base à chaque visite : derrière un <Suspense> (Cache Components), avec un squelette
           aux formes du contenu pendant le chargement (PAGES.md : pas de roue qui tourne au milieu de la page). */}
       <Suspense fallback={<OverviewSkeleton />}>
-        <OverviewContent params={params} />
+        <OverviewContent params={params} searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function OverviewContent({ params }: Pick<PageProps<"/dashboard/[campaignId]/overview">, "params">) {
+async function OverviewContent({ params, searchParams }: Pick<PageProps<"/dashboard/[campaignId]/overview">, "params" | "searchParams">) {
   const { campaignId } = await params;
+  // ?chat=agent ouvre le panneau de discussion ; une valeur inconnue est simplement ignorée
+  const { chat } = await searchParams;
   // getOverview vérifie que la campagne appartient à l'utilisateur AVANT de lire le moindre post.
   const overview = await getOverview(campaignId);
 
@@ -51,9 +55,11 @@ async function OverviewContent({ params }: Pick<PageProps<"/dashboard/[campaignI
           <h2 id="bureau-titre" className="mb-3 text-[13px] font-medium text-muted-foreground">
             Ton équipe
           </h2>
-          <OfficeScene theme="auto" />
+          {/* Chaque agent est un lien qui ouvre sa discussion dans un panneau à gauche (le même composant que la page Agents) */}
+          <OfficeScene theme="auto" agentHref={(id) => `/dashboard/${campaignId}/overview?chat=${id}`} />
         </section>
       </div>
+      <AgentChatSheet agent={findAgent(chat)} />
     </>
   );
 }
