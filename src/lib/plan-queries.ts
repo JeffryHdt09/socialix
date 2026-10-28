@@ -80,3 +80,13 @@ export async function cancelPlanAs(userId: string, campaignId: string, planId: s
   const [after] = await readPlans(userId, campaignId, { onlyPlanId: planId });
   return after ? { ok: true, plan: after } : notFound;
 }
+
+// Un plan dont plus aucune tâche n'est en attente ni en cours est fini : il passe à « terminé » (les tâches annulées ou en
+// échec ne bloquent pas la fin, elles restent visibles). Appelée par l'exécuteur du chapitre 11 après chaque tâche.
+// Sans effet sur un plan déjà terminé ou annulé (la condition « active » évite d'écraser une annulation faite entre-temps).
+export async function settlePlan(planId: string): Promise<boolean> {
+  const open = await db.select({ id: agentTasks.id }).from(agentTasks).where(and(eq(agentTasks.planId, planId), inArray(agentTasks.status, ["pending", "running"]))).limit(1);
+  if (open.length > 0) return false;
+  const settled = await db.update(agentPlans).set({ status: "done" }).where(and(eq(agentPlans.id, planId), eq(agentPlans.status, "active"))).returning({ id: agentPlans.id });
+  return settled.length > 0;
+}

@@ -38,3 +38,21 @@ export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
 };
 
 export type CancelResult = { ok: true; plan: PlanView } | { ok: false; error: string };
+
+// La ligne de bilan d'un plan, en toutes lettres : « 1 terminée sur 3 · 1 en cours · 1 en attente ».
+// Fonction pure (aucun accès à la base) : le serveur et le navigateur l'utilisent, et elle se teste seule.
+export function summarizeTasks(tasks: { status: TaskStatus }[]): string {
+  const count = (s: TaskStatus) => tasks.filter((t) => t.status === s).length;
+  if (tasks.length === 0) return "Aucune tâche";
+  const done = count("done");
+  const parts = [`${done} terminée${done > 1 ? "s" : ""} sur ${tasks.length}`];
+  const running = count("running");
+  const pending = count("pending");
+  const failed = count("failed");
+  const cancelled = count("cancelled");
+  if (running) parts.push(`${running} en cours`);
+  if (pending) parts.push(`${pending} en attente`);
+  if (failed) parts.push(`${failed} en échec`);
+  if (cancelled) parts.push(`${cancelled} annulée${cancelled > 1 ? "s" : ""}`);
+  return parts.join(" · ");
+}

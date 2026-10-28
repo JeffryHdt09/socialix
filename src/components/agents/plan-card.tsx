@@ -7,7 +7,7 @@ import { StatusDot } from "@/components/agents/status-dot";
 import { Button } from "@/components/ui/button";
 import { AGENTS, type AgentStatus } from "@/lib/agents";
 import { formatPostDate } from "@/lib/dates";
-import { PLAN_STATUS_LABEL, type PlanView, TASK_STATUS_LABEL, type TaskStatus } from "@/lib/plan-types";
+import { PLAN_STATUS_LABEL, type PlanView, summarizeTasks, TASK_STATUS_LABEL, type TaskStatus } from "@/lib/plan-types";
 import { cn } from "@/lib/utils";
 
 // La carte d'un plan du Maître (PAGES.md, fiche 5) : tâches numérotées, agent, état en toutes lettres, « après 02 »,
@@ -72,6 +72,7 @@ export function PlanCard({ plan, campaignId, onChange, onlyAgent }: Props) {
         </div>
       </header>
       <p className={cn("mt-2 break-words", plan.status === "cancelled" && "text-muted-foreground")}>{plan.summary}</p>
+      <p className="mt-1 font-mono text-[12px] text-muted-foreground">{summarizeTasks(plan.tasks)}</p>
 
       {tasks.length === 0 ? (
         <p className="mt-3 text-muted-foreground">Aucune tâche dans ce plan.</p>
