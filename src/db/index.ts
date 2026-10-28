@@ -13,9 +13,16 @@ if (!databaseUrl) {
 // On garde donc le client sur globalThis, qui survit aux rechargements.
 const globalForDb = globalThis as unknown as { client?: ReturnType<typeof postgres> };
 
+// Port 6543 = « Transaction pooler » de Supabase (le mode prévu en production serverless, chapitre 18).
+// Il ne gère pas les requêtes préparées que postgres.js utilise par défaut : mesuré, les requêtes restent
+// SANS réponse (pas d'erreur, un blocage). On les désactive donc automatiquement pour ce port. Sur le
+// Session pooler (5432, notre cas en développement), elles restent actives : c'est plus rapide.
+const usesTransactionPooler = new URL(databaseUrl).port === "6543";
+
 const client =
   globalForDb.client ??
   postgres(databaseUrl, {
+    prepare: !usesTransactionPooler,
     // Le pooler de Supabase peut fermer une connexion restée inactive. La requête qui tombe dessus échoue
     // alors avec « read ECONNRESET » (vu en test). On ferme donc nous-mêmes les connexions inactives
     // au bout de 20 s, avant le pooler : la suivante s'ouvre toute neuve. Réduit le risque, ne le supprime
