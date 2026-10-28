@@ -43,8 +43,8 @@ Serveur Next.js (Server Components, Server Actions, Route Handlers)
    ├── Auth ............ Better Auth (bibliothèque dans l'app, comptes rangés dans NOTRE base)
    ├── Base ............ PostgreSQL standard hébergé par Supabase, schéma + requêtes via Drizzle ORM
    ├── Stockage ........ Supabase Storage, compatible S3 (logos, images générées : bucket agent-files)
-   ├── Chat agents ..... OpenAI Agents SDK (@openai/agents + zod) : un agent par rôle
-   │                     modèle : Gemini, branché via @openai/agents-extensions + ai + @ai-sdk/google
+   ├── Chat agents ..... AI SDK (ai, boucle ToolLoopAgent + zod) : un agent par rôle (décision D1 révisée le 28/10/2026)
+   │                     modèle : Gemini via @ai-sdk/google, liste ordonnée avec repli (src/lib/models.ts)
    └── /api/inngest .... point d'entrée des tâches de fond
    ▼
 Inngest (tâches de fond)
@@ -52,7 +52,7 @@ Inngest (tâches de fond)
    ├── execute-agent-task : exécute une tâche (agent + outils), relance si échec
    └── on-failure : marque la tâche en échec et prévient l'utilisateur
 
-Agents (OpenAI Agents SDK)                 Outils (tools)
+Agents (AI SDK, ToolLoopAgent)                 Outils (tools)
    Maître ....... plan + assignation  →   créer / mettre à jour une tâche
    Recherche .... tendances, niche    →   recherche web, lecture de page, enregistrer la recherche
    Créateur ..... légende, image      →   rédiger, enregistrer un brouillon, générer une image (Gemini), ImageKit
@@ -65,7 +65,7 @@ Agents (OpenAI Agents SDK)                 Outils (tools)
 
 **Ce que la vidéo utilise, et ce que nous en faisons :**
 - **InsForge** (auth, base, stockage) : **remplacé** par Better Auth + PostgreSQL et stockage Supabase (décision D8), pour ne pas dépendre d'un service propriétaire.
-- **OpenAI Agents SDK** pour les agents : repris tel quel. Inngest ne sert qu'aux tâches de fond.
+- **AI SDK (Vercel)** pour les agents, à la place du SDK OpenAI Agents prévu au départ : il parle à Gemini sans adaptateur, a une boucle d'agent (`ToolLoopAgent`) et la validation humaine d'un outil (`needsApproval`). Au chapitre 10 (passages de main entre agents), on compare honnêtement avec `@openai/agents` (déjà installé), Mastra et LangGraph sur le vrai besoin. Les consignes, l'historique, la liste de modèles et la table `messages` sont indépendants du framework. Inngest ne sert qu'aux tâches de fond.
 - **Modèles OpenAI avec tokens gratuits quotidiens** : **remplacés par Gemini** (offre gratuite d'AI Studio, sans carte bancaire), l'offre OpenAI n'étant plus disponible. Le SDK reste le même, seul le modèle branché change (décision D1).
 - **Gemini** pour générer les images, **ImageKit** pour les retoucher : repris. Une seule clé Google sert donc aux agents et aux images.
 - **Blotato** pour la publication et les statistiques : **payant** (29 $/mois, API absente de l'essai). Remplaçant à choisir (décision D5).
@@ -165,7 +165,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 
 | # | Question | Ce que fait la vidéo | Recommandation |
 |---|---|---|---|
-| D1 | Quel LLM pour les agents ? (ch. 9) | Modèles OpenAI avec tokens gratuits quotidiens contre partage des données | ✅ **Décidé : Gemini** (offre gratuite d'AI Studio), branché sur l'OpenAI Agents SDK via l'adaptateur AI SDK. L'offre OpenAI n'est plus disponible pour ton compte |
+| D1 | Quel LLM pour les agents ? (ch. 9) | Modèles OpenAI avec tokens gratuits quotidiens contre partage des données | ✅ **Décidé : Gemini** (offre gratuite d'AI Studio), branché sur l'OpenAI Agents SDK via l'adaptateur AI SDK. L'offre OpenAI n'est plus disponible pour ton compte. **Révisée le 28/10/2026** : pour le chat, l'AI SDK seul (voir ci-dessus), sans adaptateur ; le SDK OpenAI Agents reste candidat pour le chapitre 10 |
 | D2 | Où stocker la clé du service de publication ? (ch. 14) | En base, chiffrée, par utilisateur (clé de chiffrement dans `.env.local`) | Suivre la vidéo : c'est l'occasion d'apprendre le chiffrement (AES-GCM) |
 | D3 | Suivi « en temps réel » des agents (ch. 10–12) | Non expliqué dans la vidéo | Rafraîchissement périodique (polling) toutes les 2–3 s d'abord, simple à comprendre |
 | D4 | Faire le chapitre 17 (E2B) ? | Oui | À décider après le chapitre 16 |
