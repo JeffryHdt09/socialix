@@ -9,6 +9,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { campaigns } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { queryOverviewUnchecked } from "@/lib/overview-queries";
 
 // Couche d'accès aux données (DAL) : le vrai contrôle de sécurité, au plus près des données.
 // Better Auth lit le cookie de session et vérifie en base que la session existe et n'a pas expiré.
@@ -52,3 +53,10 @@ export async function requireMyCampaign(campaignId: string) {
   if (!campaign) notFound();
   return campaign;
 }
+
+// Les chiffres de la vue d'ensemble d'une campagne. La propriété est vérifiée ICI, avant toute lecture des posts :
+// queryOverviewUnchecked ne le fait pas (voir son avertissement), il ne doit être appelé que par cette fonction.
+export const getOverview = cache(async (campaignId: string) => {
+  await requireMyCampaign(campaignId);
+  return queryOverviewUnchecked(campaignId);
+});
