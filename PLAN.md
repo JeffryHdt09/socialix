@@ -129,6 +129,8 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 
 ### Équipes d'agents futures (après le ch. 15, hors critère de fin)
 
+> **Vision élargie (28/10/2026) : le projet ne sera plus forcément réservé au marketing.** D'autres domaines pourront suivre. Conséquence dès le chapitre 9 : le moteur d'agents (chat, historique, modèles, outils) ne contient aucune notion de marketing. Chaque agent appartient à une **équipe** (`team` dans `src/lib/agents.ts`), chaque équipe a son **contexte** (`CONTEXTE_EQUIPE` dans `src/lib/agent-instructions.ts`), et les règles communes (français, pas d'invention, accord humain avant toute action extérieure) valent pour toutes. Une nouvelle équipe = une entrée de contexte + des agents, sans réécrire le moteur. Les pages, la campagne et le bureau restent propres au marketing tant qu'on n'a pas décidé comment un autre domaine s'y présente (à trancher le moment venu, pas avant).
+
 Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. Chaque équipe aurait son propre Maître, ou partagerait celui de l'équipe marketing.
 
 - **Prépare dès les ch. 9–10 : un agent est une donnée** (nom, rôle, instructions, liste d'outils, liste de modèles, voir D9). Ajouter un agent = ajouter une ligne, sans réécrire le moteur.
