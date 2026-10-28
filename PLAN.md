@@ -85,7 +85,7 @@ Agents (OpenAI Agents SDK)                 Outils (tools)
 | `agent_communications` | id, task_id, from_agent, to_agent, message, created_at — échanges maître ↔ agents | 10 |
 | `agent_task_runs` | id, task_id, status, started_at, finished_at, error | 11 |
 | `research_results` | id, task_id, campaign_id, topic, data (JSON) | 12 |
-| `posts` | id, campaign_id, title, caption, hashtags, platforms, image_url, scheduled_at (UTC), status (`draft` / `scheduled` / `published` / `failed`), blotato_id, created_by (`user` / `agent`) | 12–13 |
+| `posts` | id (uuid), campaign_id (supprimé en cascade avec la campagne), title (1 à 120 caractères), caption, hashtags (liste), platforms (liste), image_url, scheduled_at (timestamptz, UTC), status (`draft` / **`to_review`** / `scheduled` / `published` / `failed`), external_id (identifiant chez le service de publication, nom neutre tant que D5 n'est pas tranchée), created_by (`user` / `agent`), created_at, updated_at. RLS activé. Contrôles dans la base : titre non vide, et un post `scheduled` ou `published` a forcément une date. **Créée au chapitre 7** (pour les calculs de la vue d'ensemble), les posts eux-mêmes arrivent aux chapitres 12 et 13 | 7 |
 | `integrations` | id, user_id, provider (`blotato`), api_key_encrypted, created_at | 14 |
 | `social_accounts` | id, user_id, blotato_account_id, platform, username, status, refreshed_at | 14 |
 
@@ -103,7 +103,7 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 | 4 | **Système de design** *(ajout)* | Variables CSS, thème shadcn/ui, thèmes clair/sombre, composants accessibles | shadcn installé avec les couleurs, polices et arrondis de `docs/DESIGN.md`, bascule Jour/Nuit fonctionnelle |
 | 5 | **Création de campagne** | Formulaire en 2 étapes, Server Actions, validation, upload | Campagne créée (nom, logo ≤ 3 Mo vers Supabase Storage, bureau), redirection si aucune campagne |
 | 6 | **Layout du dashboard** | Layouts imbriqués, route dynamique `[campaignId]`, navigation | Sidebar repliable (icônes par défaut), sélecteur de campagne, header, pages vides propres |
-| 7 | **Vue d'ensemble + bureau isométrique** | Agrégations SQL, positionnement en %, animation CSS, composant réutilisable | Statut de campagne (états vides), bureau d'après `office-studio/*.json`, agents animés, étiquette nom + emoji, positions stables au redimensionnement |
+| 7 | **Vue d'ensemble + bureau isométrique** | Agrégations SQL, positionnement en %, animation CSS, composant réutilisable | Statut de campagne (états vides), bureau d'après `office-studio/*.json`, agents animés, étiquette du nom en police pixel (**sans emoji** : DESIGN.md les interdit), pastille d'état, positions stables au redimensionnement |
 | 8 | **Page Agents (interface)** | Composition de composants, onglets, panneau latéral | Barre des agents, onglets Chat / Historique / Réglages (factices), clic sur un agent dans le bureau de la vue d'ensemble → panneau de chat à gauche, **même composant partout** |
 | 9 | **Agents SDK + Gemini** | Appeler un LLM côté serveur, adaptateur de modèle, instructions d'agent, schémas zod, historique | Chat réel avec chaque agent (modèle Gemini), chacun refuse le travail des autres, historique en base |
 | 10 | **Agent maître** | Planification, sortie structurée, tâches avec dépendances | Le maître pose des questions si besoin, crée un plan et des tâches assignées, rapport visible ; agent Publication remplacé par Analytique |
@@ -208,6 +208,12 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - **Audit d'accessibilité (méthode)** : `axe-core` (MPL-2.0, Deque), exécuté dans un vrai Chrome sur chaque page en Jour et en Nuit, menu replié et déplié, menus ouverts, tiroir mobile et écrans de connexion, avec les règles WCAG 2.2 AA et les bonnes pratiques. Installé **hors du projet** (non ajouté aux dépendances). Il a trouvé au chapitre 6 deux vrais défauts (boutons du menu replié sans nom accessible, barre latérale hors de tout repère) que ni `tsc`, ni `lint`, ni les captures ne montraient. À refaire à chaque chapitre qui ajoute des écrans.
 - **Cache Components et `notFound()`** : voir « Isolation des données » plus haut.
 
+- **Statut `to_review` (« À valider »)** : ajouté aux quatre statuts du plan initial, car la charte décrit cinq états et la carte « À valider » de la vue d'ensemble doit compter les posts que l'équipe IA remet à l'humain. Un **brouillon n'est pas « à valider »** : il est hachuré dans la bande des 7 jours mais ne compte pas dans la carte.
+- **Jours et fuseau** : les dates sont en UTC dans la base, mais « aujourd'hui » et le découpage de la bande des 7 jours se font en `Europe/Paris` (`src/lib/overview-queries.ts`). Testé à la frontière : un post à 00 h 30 le 9 à Paris (23 h 30 UTC le 8) n'est pas compté le 8. `queryOverviewUnchecked` ne vérifie pas la propriété : seul `getOverview` (DAL) doit l'appeler.
+
+- **Mouvement réduit et thème dans les tests** : un navigateur peut recevoir `prefers-reduced-motion: reduce` (réglage d'animations du système) et `prefers-color-scheme: dark` sans qu'on l'ait demandé. Le site les respecte : la pastille « en cours » ne respire pas et les personnages « au travail » ne bougent pas. Conséquence pour les tests : toujours fixer explicitement ces deux préférences avant de mesurer une animation ou une couleur.
+- **Une capture vaut plus que des classes CSS** : au chapitre 7, 31 contrôles passaient alors que les étiquettes étaient illisibles (C = O) ; seule la capture l'a montré, puis un test de non-chevauchement a trouvé le seuil réel (512 px). Pour tout rendu visuel, regarder la capture **et** ajouter la mesure qui l'aurait trahi.
+
 ## 9. Avancement
 
 - [x] Squelette Next.js 16.4.3 généré dans `socialix` (TypeScript, Tailwind v4, ESLint, `src/`, App Router)
@@ -224,6 +230,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - [x] **Chapitre 4** : shadcn/ui (base Radix) avec la charte de `docs/DESIGN.md` : variables Jour/Nuit, composants `Button`, `Input`, `Label`, `DropdownMenu` adaptés (44 px, arrondi 10 px, focus encre), bouton Jour/Nuit (`next-themes`, classe `dark`)
 - [ ] **Chapitre 5** (en cours, branche `ch5-campagne`) : table `campaigns`, règles de validation, stockage S3 des logos, page `/campaigns/new` en 2 étapes, liste sur `/dashboard`, redirections. Reste : pull request et relecture
 - [ ] **Chapitre 6** (en cours, branche `ch6-layout`) : barre latérale adaptée, routes `/dashboard/[campaignId]/…` avec isolation, menu (sélecteur, 7 sections, profil), en-tête avec « Créer un post », audit d'accessibilité. Reste : pull request et relecture
+- [ ] **Chapitre 7** (en cours, branche `ch7-vue-ensemble`) : table `posts`, requêtes de la vue d'ensemble (fuseau Paris), bureau isométrique, page `/overview` (3 cartes, bande de 7 jours, listes). Testé : 44 contrôles + axe. Reste : documentation finale, pull request et relecture
 - [ ] Phase 1 : [ ] 5 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)

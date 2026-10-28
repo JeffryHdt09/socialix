@@ -20,7 +20,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
 
       {/* Colonne droite, toujours en thème Nuit, masquée sur téléphone. */}
       <aside className="hidden flex-col justify-center gap-6 bg-nuit-fond p-10 lg:flex">
-        <OfficeScene theme="nuit" />
+        <OfficeScene theme="nuit" decorative />
         <p className="text-[20px] font-semibold text-nuit-encre">Ton équipe d’agents t’attend.</p>
       </aside>
     </div>
