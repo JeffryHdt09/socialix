@@ -81,7 +81,9 @@
   | **Accent** | **`--signal`** | **`bg-signal`** |
   | Succès | `--success` | `text-success` |
   | Erreur | `--destructive` | `text-destructive` |
-  | Inactif | `--inactive` | `text-inactive` |
+  | Inactif (indicateurs, pas de texte) | `--inactive` | `bg-inactive` |
+
+  **Le gris « inactif » ne sert jamais pour du texte** : son contraste est d'environ 1,7:1 en Jour et 2,8:1 en Nuit, sous le minimum de 4,5:1. Il colore seulement des indicateurs (pastille d'un agent au repos). Un texte inactif ou discret prend `text-muted-foreground`.
 
   Attention : `--accent` est, chez shadcn, le **fond de survol** (beige en Jour, bleu nuit en Nuit), pas notre jaune.
 - **Thème Nuit** : la classe `dark` sur `<html>`, posée par `next-themes` (réglage de l'appareil par défaut). Le bouton Jour / Nuit / Système est `src/components/theme-toggle.tsx`.

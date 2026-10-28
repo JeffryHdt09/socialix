@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
     <div className="grid min-h-dvh flex-1 lg:grid-cols-2">
       <div className="flex flex-col bg-card px-4 py-6 sm:px-10">
         <header className="flex items-center justify-between">
-          <Link href="/" className="text-xl font-extrabold tracking-tight text-foreground">
+          <Link href="/" className="inline-flex min-h-11 items-center text-xl font-extrabold tracking-tight text-foreground">
             Socialix
           </Link>
           <ThemeToggle />

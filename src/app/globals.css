@@ -154,6 +154,21 @@
   }
 }
 
+/* Mouvement réduit (DESIGN.md, règle 5) : si l'utilisateur le demande, toute animation et toute
+   transition deviennent instantanées. Règle globale : elle couvre aussi les futurs composants
+   (fenêtres, panneaux). Durée de 0,01 ms plutôt que « none » : Radix attend la fin d'une animation
+   pour retirer un élément, et cet événement doit encore se produire. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Focus clavier toujours visible : contour encre (DESIGN.md, accessibilité). */
 :focus-visible {
   outline: 2px solid var(--ring);
