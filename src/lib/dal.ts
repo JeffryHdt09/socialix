@@ -1,9 +1,10 @@
 import "server-only"; // erreur de build si ce fichier est importé dans du code navigateur
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
+import { z } from "zod";
 
 import { db } from "@/db";
 import { campaigns } from "@/db/schema";
@@ -28,3 +29,26 @@ export const getMyCampaigns = cache(async () => {
   const { user } = await verifySession();
   return db.select().from(campaigns).where(eq(campaigns.userId, user.id)).orderBy(desc(campaigns.createdAt));
 });
+
+// UNE campagne de l'utilisateur connecté, ou null. L'identifiant vient d'une adresse, donc d'un inconnu :
+// - il doit avoir la forme d'un UUID, sinon on ne demande même pas à la base (une chaîne piégée ne l'atteint pas) ;
+// - la recherche porte sur l'identifiant ET le propriétaire (la session) : une campagne d'un autre ne se trouve pas.
+// Dans les deux cas, le résultat est le même null : on ne révèle jamais qu'une campagne existe chez quelqu'un d'autre.
+export const getMyCampaign = cache(async (campaignId: string) => {
+  const { user } = await verifySession();
+  if (!z.uuid().safeParse(campaignId).success) return null;
+  const [campaign] = await db
+    .select()
+    .from(campaigns)
+    .where(and(eq(campaigns.id, campaignId), eq(campaigns.userId, user.id)))
+    .limit(1);
+  return campaign ?? null;
+});
+
+// Pour une page ou un layout : la campagne, ou l'écran « introuvable » (404). À appeler au début de chaque
+// page d'une campagne.
+export async function requireMyCampaign(campaignId: string) {
+  const campaign = await getMyCampaign(campaignId);
+  if (!campaign) notFound();
+  return campaign;
+}

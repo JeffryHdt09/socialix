@@ -16,12 +16,12 @@ import { MAX_CAMPAIGNS_PER_USER } from "@/lib/campaign-rules";
 // derrière le Transaction pooler de Supabase prévu en production, où un verrou de session serait perdu.
 // hashtext() transforme l'identifiant en nombre ; deux utilisateurs différents ne se bloquent pas
 // (sauf collision de hachage, très rare et sans conséquence : l'un attend l'autre quelques millisecondes).
-export async function createCampaignWithinLimit(values: NewCampaign): Promise<"created" | "limit"> {
+export async function createCampaignWithinLimit(values: NewCampaign): Promise<{ status: "created"; id: string } | { status: "limit" }> {
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${values.userId}))`);
     const [{ total }] = await tx.select({ total: count() }).from(campaigns).where(eq(campaigns.userId, values.userId));
-    if (total >= MAX_CAMPAIGNS_PER_USER) return "limit" as const;
-    await tx.insert(campaigns).values(values);
-    return "created" as const;
+    if (total >= MAX_CAMPAIGNS_PER_USER) return { status: "limit" as const };
+    const [created] = await tx.insert(campaigns).values(values).returning({ id: campaigns.id });
+    return { status: "created" as const, id: created.id };
   });
 }
