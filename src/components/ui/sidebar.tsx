@@ -2,7 +2,7 @@
 
 // Barre latérale adaptée à docs/DESIGN.md (le code d'origine de shadcn/ui a été modifié) :
 // - lien actif = pilule encre (sidebar-primary), liens de 44 px (zones cliquables >= 44 px), icônes de 20 px ;
-// - barre repliée de 64 px (au lieu de 48) pour contenir des boutons de 44 px, icônes centrées ;
+// - barre repliée de 60 px (au lieu de 48) pour contenir des boutons de 44 px, icônes centrées ;
 // - textes en français ; cookie de mémorisation avec SameSite=Lax ;
 // - le reste (largeurs, tiroir mobile, raccourci Ctrl+B, info-bulles) est inchangé.
 
@@ -34,8 +34,9 @@ const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
-// 4 rem (64 px) au lieu de 3 rem : les boutons repliés font 44 px (zones cliquables >= 44 px, DESIGN.md).
-const SIDEBAR_WIDTH_ICON = "4rem"
+// 3,75 rem (60 px) au lieu de 3 rem : les boutons repliés font 44 px (zones cliquables >= 44 px, DESIGN.md) et la
+// colonne a 8 px de marge de chaque côté (44 + 16 = 60), donc le bouton la remplit et ses icônes sont centrées.
+const SIDEBAR_WIDTH_ICON = "3.75rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
 type SidebarContextProps = {
