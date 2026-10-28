@@ -12,6 +12,15 @@ export const MAX_HISTORY = 20;
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
+// La fenêtre d'historique envoyée au modèle : les MAX_HISTORY derniers échanges, SANS message d'assistant en tête. Gemini attend
+// un historique qui commence par la personne (« first content must have role user », erreur 400 qui bloquait toute la
+// conversation une fois la fenêtre tombée sur une réponse d'agent : remarque de CodeRabbit sur la PR n°8).
+export function windowHistory(history: ChatTurn[]): ChatTurn[] {
+  const recent = history.slice(-MAX_HISTORY);
+  const firstUser = recent.findIndex((t) => t.role === "user");
+  return firstUser === -1 ? [] : recent.slice(firstUser);
+}
+
 // Réglages d'un appel : la liste de modèles et la façon d'en fabriquer un. Les deux ont une valeur par défaut ; les tests
 // les remplacent (liste inventée, faux modèle) pour vérifier le comportement sans appeler Gemini ni épuiser le quota.
 // `teams` : les équipes activées du projet. Elles décident de la liste des agents annoncée dans les consignes.
@@ -87,7 +96,7 @@ export async function askAgent(agent: AgentId, history: ChatTurn[], options: Mod
     // ToolLoopAgent : la boucle d'agent de l'AI SDK. Sans outil, elle fait un seul tour ; au chapitre 12, on lui
     // donnera des outils (`tools`) sans rien changer d'autre.
     const bot = new ToolLoopAgent({ id: agent, model: modelFactory(name), instructions: [instructionsFor(agent, options.teams), options.extraInstructions].filter(Boolean).join("\n\n"), maxRetries: 1 });
-    const result = await bot.generate({ messages: history.slice(-MAX_HISTORY), timeout: 30_000 });
+    const result = await bot.generate({ messages: windowHistory(history), timeout: 30_000 });
     return result.text.trim() || null; // réponse vide (filtre de sécurité…) : on essaie le suivant
   });
   return { text: value, model };

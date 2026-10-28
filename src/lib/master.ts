@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { instructionsFor } from "@/lib/agent-instructions";
 import { workersFor } from "@/lib/agents";
-import { type ChatTurn, MAX_HISTORY, type ModelOptions, withModelFallback } from "@/lib/chat";
+import { type ChatTurn, type ModelOptions, windowHistory, withModelFallback } from "@/lib/chat";
 import { CHAT_MODELS, getModel } from "@/lib/models";
 import { MAX_TASKS, type PlanDraft, planDraftSchema, type ValidPlan, validatePlan } from "@/lib/plan";
 
@@ -63,7 +63,7 @@ export async function runMaster(history: ChatTurn[], options: ModelOptions = {})
   const team = workersFor(options.teams);
   const roster = team.map((a) => `- ${a.id} (${a.name}) : ${a.role}`).join("\n");
   const system = `${instructionsFor("maitre", options.teams)}\n\n${planningRules(roster)}`;
-  let turns: ChatTurn[] = history.slice(-MAX_HISTORY);
+  let turns: ChatTurn[] = windowHistory(history);
   let lastErrors: string[] = [];
 
   for (let attempt = 0; attempt <= MAX_CORRECTIONS; attempt++) {

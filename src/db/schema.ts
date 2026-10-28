@@ -248,3 +248,18 @@ export const agentCommunications = pgTable(
 
 export type AgentPlan = typeof agentPlans.$inferSelect;
 export type AgentTask = typeof agentTasks.$inferSelect;
+
+// Réservations de la limite de messages (chat-service.ts) : une ligne PAR ENVOI, créée AVANT l'appel au modèle, sous un verrou
+// propre à la personne. Compter les messages enregistrés ne suffisait pas : l'enregistrement a lieu après l'appel (jusqu'à 30 s),
+// donc 50 envois simultanés passaient tous le contrôle, et les appels qui échouent (429) n'étaient jamais comptés.
+export const chatRateEvents = pgTable(
+  "chat_rate_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [index("chat_rate_events_user_created_idx").on(table.userId, table.createdAt)],
+).enableRLS();
