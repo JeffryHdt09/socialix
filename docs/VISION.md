@@ -52,9 +52,20 @@ L'agent Recherche (commun) sert la recherche de marché des trois derniers domai
 - Temps disponible : environ 10 heures par semaine.
 - Règle de calcul : tout ce qui est déterministe (facture, total, date) se fait par une fonction classique testée, jamais par le modèle.
 
-## Video Studio (le montage vidéo)
+## Studio 360 et Flow MCP (le montage vidéo)
 
-Dossier `C:devideo-studio` : un studio en ligne de commande (`npx tsx src/cli.ts`) où les moteurs de génération sont interchangeables (Flow MCP, Veo) et où le montage passe par HyperFrames puis FFmpeg. Il a déjà les mêmes principes que nous : un moteur payant demande `--approve`, pas de bascule automatique entre moteurs, un job déjà soumis n'est jamais resoumis, chaque média a un `.json` jumeau (prompt, hash, mesures). Piste d'intégration (chapitre 12) : un **outil** « studio » qui appelle `new-video`, `render` et `status`, avec l'approbation de la personne avant tout coût. Pas avant le chapitre 12, et seulement sur la machine de l'utilisateur (pas dans une application hébergée).
+Deux outils de l'utilisateur, tous deux **locaux** (sur sa machine) :
+
+- **Studio 360** (`C:UsersLENOVOstudio-360`) : un logiciel de montage vidéo tout-en-un, **fork de HyperFrames** (Apache 2.0) avec nos extensions (relecture, storyboard, générateurs, montage de rushes, musique, kits de marque, zones de sécurité). Il expose un **serveur MCP `studio-360` de 56 outils** (projets, marques, contrôle qualité, relecture et versions, storyboard, génération Flow, montage, musique…) que Claude Code pilote.
+- **Flow MCP** (`C:devlow-mcp`) : un programme qui ouvre une fenêtre Chrome à part, s'y connecte à Google Flow avec le compte de l'utilisateur et clique les vrais boutons pour générer images et courtes vidéos, avec les crédits de son abonnement Google AI (sans l'API payante). Studio 360 s'en sert pour ses outils `generate_image` et `generate_clip`.
+
+(`C:devideo-studio` est un autre outil, plus ancien : un studio en ligne de commande à moteurs interchangeables. Ce n'est pas Studio 360.)
+
+**Ce que cela implique pour Socialix**
+- Le domaine **montage vidéo** ne peut tourner que **sur la machine de l'utilisateur** : Flow MCP a besoin d'un Chrome réel et d'un écran allumé, et il automatise l'interface web de Flow (zone grise des conditions d'utilisation de Google, risque accepté par l'utilisateur pour **son** compte, jamais pour celui d'un client).
+- Piste d'intégration (chapitre 12) : un agent « Monteur » qui appelle les outils MCP de Studio 360 depuis l'application lancée en local (le SDK que nous utilisons sait se connecter à un serveur MCP). Une génération Flow qui dépense des crédits attend toujours l'accord explicite de la personne : c'est déjà la règle de Studio 360.
+- Pour des clients hébergés, il faudrait un autre moteur de génération (API officielle) : décision à prendre à ce moment-là, pas maintenant.
+- Pas avant le chapitre 12, et avant cela, la prospection et le marketing donnent des revenus sans dépendre de ces outils.
 
 ## Les workflows visés
 
