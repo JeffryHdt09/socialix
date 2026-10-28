@@ -9,6 +9,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { campaigns } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { readConversation } from "@/lib/chat-service";
 import { queryOverviewUnchecked } from "@/lib/overview-queries";
 
 // Couche d'accès aux données (DAL) : le vrai contrôle de sécurité, au plus près des données.
@@ -59,4 +60,10 @@ export async function requireMyCampaign(campaignId: string) {
 export const getOverview = cache(async (campaignId: string) => {
   await requireMyCampaign(campaignId);
   return queryOverviewUnchecked(campaignId);
+});
+
+// La conversation de l'utilisateur connecté avec un agent d'une de ses campagnes (liste vide si la campagne n'est pas à lui).
+export const getConversation = cache(async (campaignId: string, agentId: string) => {
+  const { user } = await verifySession();
+  return readConversation(user.id, campaignId, agentId);
 });

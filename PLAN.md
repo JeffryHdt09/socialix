@@ -43,8 +43,8 @@ Serveur Next.js (Server Components, Server Actions, Route Handlers)
    ├── Auth ............ Better Auth (bibliothèque dans l'app, comptes rangés dans NOTRE base)
    ├── Base ............ PostgreSQL standard hébergé par Supabase, schéma + requêtes via Drizzle ORM
    ├── Stockage ........ Supabase Storage, compatible S3 (logos, images générées : bucket agent-files)
-   ├── Chat agents ..... OpenAI Agents SDK (@openai/agents + zod) : un agent par rôle
-   │                     modèle : Gemini, branché via @openai/agents-extensions + ai + @ai-sdk/google
+   ├── Chat agents ..... AI SDK (ai, boucle ToolLoopAgent + zod) : un agent par rôle (décision D1 révisée le 28/10/2026)
+   │                     modèle : Gemini via @ai-sdk/google, liste ordonnée avec repli (src/lib/models.ts)
    └── /api/inngest .... point d'entrée des tâches de fond
    ▼
 Inngest (tâches de fond)
@@ -52,7 +52,7 @@ Inngest (tâches de fond)
    ├── execute-agent-task : exécute une tâche (agent + outils), relance si échec
    └── on-failure : marque la tâche en échec et prévient l'utilisateur
 
-Agents (OpenAI Agents SDK)                 Outils (tools)
+Agents (AI SDK, ToolLoopAgent)                 Outils (tools)
    Maître ....... plan + assignation  →   créer / mettre à jour une tâche
    Recherche .... tendances, niche    →   recherche web, lecture de page, enregistrer la recherche
    Créateur ..... légende, image      →   rédiger, enregistrer un brouillon, générer une image (Gemini), ImageKit
@@ -65,7 +65,7 @@ Agents (OpenAI Agents SDK)                 Outils (tools)
 
 **Ce que la vidéo utilise, et ce que nous en faisons :**
 - **InsForge** (auth, base, stockage) : **remplacé** par Better Auth + PostgreSQL et stockage Supabase (décision D8), pour ne pas dépendre d'un service propriétaire.
-- **OpenAI Agents SDK** pour les agents : repris tel quel. Inngest ne sert qu'aux tâches de fond.
+- **AI SDK (Vercel)** pour les agents, à la place du SDK OpenAI Agents prévu au départ : il parle à Gemini sans adaptateur, a une boucle d'agent (`ToolLoopAgent`) et la validation humaine d'un outil (`needsApproval`). Au chapitre 10 (passages de main entre agents), on compare honnêtement avec `@openai/agents` (à réinstaller si retenu, version 0.21.0 au 28/10/2026), Mastra et LangGraph sur le vrai besoin. Les consignes, l'historique, la liste de modèles et la table `messages` sont indépendants du framework. Inngest ne sert qu'aux tâches de fond.
 - **Modèles OpenAI avec tokens gratuits quotidiens** : **remplacés par Gemini** (offre gratuite d'AI Studio, sans carte bancaire), l'offre OpenAI n'étant plus disponible. Le SDK reste le même, seul le modèle branché change (décision D1).
 - **Gemini** pour générer les images, **ImageKit** pour les retoucher : repris. Une seule clé Google sert donc aux agents et aux images.
 - **Blotato** pour la publication et les statistiques : **payant** (29 $/mois, API absente de l'essai). Remplaçant à choisir (décision D5).
@@ -129,6 +129,9 @@ On suit l'ordre de la vidéo pour pouvoir regarder chaque passage avant de le co
 
 ### Équipes d'agents futures (après le ch. 15, hors critère de fin)
 
+> **Vision élargie (28/10/2026) : le projet ne sera plus forcément réservé au marketing.** D'autres domaines pourront suivre. Conséquence dès le chapitre 9 : le moteur d'agents (chat, historique, modèles, outils) ne contient aucune notion de marketing. Chaque agent appartient à une **équipe** (`team` dans `src/lib/agents.ts`), chaque équipe a son **contexte** (`CONTEXTE_EQUIPE` dans `src/lib/agent-instructions.ts`), et les règles communes (français, pas d'invention, accord humain avant toute action extérieure) valent pour toutes. Une nouvelle équipe = une entrée de contexte + des agents, sans réécrire le moteur. Les pages, la campagne et le bureau restent propres au marketing tant qu'on n'a pas décidé comment un autre domaine s'y présente (à trancher le moment venu, pas avant).
+> Le détail (domaines, workflows visés, ce que le moteur doit offrir, garde-fous) est dans [`docs/VISION.md`](docs/VISION.md).
+
 Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. Chaque équipe aurait son propre Maître, ou partagerait celui de l'équipe marketing.
 
 - **Prépare dès les ch. 9–10 : un agent est une donnée** (nom, rôle, instructions, liste d'outils, liste de modèles, voir D9). Ajouter un agent = ajouter une ligne, sans réécrire le moteur.
@@ -162,7 +165,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 
 | # | Question | Ce que fait la vidéo | Recommandation |
 |---|---|---|---|
-| D1 | Quel LLM pour les agents ? (ch. 9) | Modèles OpenAI avec tokens gratuits quotidiens contre partage des données | ✅ **Décidé : Gemini** (offre gratuite d'AI Studio), branché sur l'OpenAI Agents SDK via l'adaptateur AI SDK. L'offre OpenAI n'est plus disponible pour ton compte |
+| D1 | Quel LLM pour les agents ? (ch. 9) | Modèles OpenAI avec tokens gratuits quotidiens contre partage des données | ✅ **Décidé : Gemini** (offre gratuite d'AI Studio), branché sur l'OpenAI Agents SDK via l'adaptateur AI SDK. L'offre OpenAI n'est plus disponible pour ton compte. **Révisée le 28/10/2026** : pour le chat, l'AI SDK seul (voir ci-dessus), sans adaptateur ; le SDK OpenAI Agents reste candidat pour le chapitre 10 |
 | D2 | Où stocker la clé du service de publication ? (ch. 14) | En base, chiffrée, par utilisateur (clé de chiffrement dans `.env.local`) | Suivre la vidéo : c'est l'occasion d'apprendre le chiffrement (AES-GCM) |
 | D3 | Suivi « en temps réel » des agents (ch. 10–12) | Non expliqué dans la vidéo | Rafraîchissement périodique (polling) toutes les 2–3 s d'abord, simple à comprendre |
 | D4 | Faire le chapitre 17 (E2B) ? | Oui | À décider après le chapitre 16 |
@@ -170,14 +173,16 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 | D6 | Dépôt GitHub public ou privé ? (ch. 2) | — | **Public**, pour que CodeRabbit fasse des revues complètes (sur un dépôt privé, l'offre gratuite ne fait que des résumés). Donc aucun secret commité, et le fichier `text` (transcription d'une vidéo tierce) ajouté à `.gitignore` |
 | D7 | Où héberger l'application ? (ch. 18) | — | À décider au chapitre 18, selon que des clients payants l'utilisent déjà ou non |
 | D9 | Quels modèles, et comment alterner entre les quotas ? (ch. 9, étendu au ch. 12) | Un seul fournisseur (modèles OpenAI) | **Trois niveaux avec repli**, branchés par l'adaptateur AI SDK déjà prévu (D1), donc un seul fichier à changer : **Maître** (plan, sortie structurée, appels d'outils fiables) = modèle solide (Gemini ou DeepSeek « Pro ») · **Agents de travail** (rédaction, résumés) = modèle très bon marché (DeepSeek « Flash », ordre de grandeur 0,07 $ / 0,18 $ par million de tokens) · **Secours** = modèles `:free` d'OpenRouter (20 requêtes/min ; 50/jour, ou 1 000/jour après 10 $ de crédits achetés au total) puis quota gratuit de Gemini. Les agents lisent une **liste ordonnée de modèles** (pas un modèle codé en dur) : en cas d'erreur 429 ou de modèle retiré, on passe au suivant. **Règles :** aucune donnée client sur un modèle gratuit ; chaque modèle est testé sur une tâche d'appel d'outil avant adoption. Chiffres à revérifier sur les pages officielles au moment d'ouvrir le compte |
+| D10 | Quel moteur pour le Maître ? (ch. 10) | AI SDK seul · SDK OpenAI Agents · Mastra · LangGraph.js · `WorkflowAgent` | 🟡 **Proposée le 28/10/2026, à valider au début du chapitre 10 : AI SDK seul, sans nouveau framework.** Le besoin : le Maître pose des questions, produit un **plan structuré** (tâches, agent assigné, dépendances) et un rapport visible. Cela se fait avec la sortie structurée de l'AI SDK (`Output.object` + zod), nos tables `agent_tasks` et `agent_communications` comme **source de vérité** (l'interface les lit), et, au chapitre 11, chaque tâche exécutée par `ToolLoopAgent` dans une étape Inngest (reprises et relances gérées par Inngest). **Pourquoi pas les autres :** le SDK OpenAI Agents apporte les passages de main (transfert d'un agent à l'autre dans une même conversation), pas des tâches durables avec dépendances ; Mastra et LangGraph.js ont chacun leur propre moteur d'état et de reprise (workflows et mémoire pour l'un, points de sauvegarde et interruptions pour l'autre), qui feraient double emploi avec Inngest et notre base ; `WorkflowAgent` demande l'environnement Vercel Workflow, en concurrence avec Inngest. **À reconsidérer** si un futur domaine demande de longues boucles avec interruption humaine (LangGraph ou Mastra deviennent alors sérieux). **À vérifier avant de trancher** : ces comparaisons viennent de la documentation de l'AI SDK installée et de résumés web (la version de Mastra, 1.x, varie selon les sources) ; lire les pages officielles de l'outil retenu avant de l'adopter |
 | D8 | Auth, base et stockage (ch. 3) | InsForge, service propriétaire tout-en-un | ✅ **Décidé : Better Auth** (bibliothèque open source MIT, comptes dans notre base) + **PostgreSQL et stockage Supabase** (open source, standard). Si un hébergeur ferme : export de la base, nouvelle adresse dans `.env.local`, les comptes suivent |
 
 ## 8. Risques et points à vérifier
 
+- **Alertes `npm audit` (28/10/2026) : 7, toutes dans des outils de développement** (`drizzle-kit` via un ancien `esbuild`, et le CLI `shadcn` via `deepmerge`), aucune dans le code livré. L'`esbuild` concerné n'est dangereux que pour son serveur de développement, que `drizzle-kit` ne lance pas. **Ne pas lancer `npm audit fix --force`** : il fait descendre `drizzle-kit` à 0.18.1 et casse les migrations. À revérifier à chaque chapitre qui ajoute des dépendances, et mettre `drizzle-kit` et `shadcn` à jour dès qu'une version sans l'alerte sort.
 - **Boilerplate de la vidéo introuvable** : remplacé par `create-next-app` officiel. On ajoute shadcn, Drizzle et Inngest nous-mêmes.
 - **Prompts de la vidéo indisponibles** (document Eraser) : on reconstruit chaque chapitre à partir de la transcription et de la doc officielle.
 - **Next.js 16** : version récente avec des changements. Lire `node_modules/next/dist/docs/` avant d'utiliser une API (voir `AGENTS.md`).
-- **Versions au 26/10/2026** : `@openai/agents` et `@openai/agents-extensions` 0.21.0 (pas encore en 1.0, l'API peut bouger), `ai` 7.0.153, `@ai-sdk/google` 4.0.105, `zod` 4.6.7, `inngest` 4.26.0, `better-auth` 1.7.14, `drizzle-orm` 0.45.4, `@google/genai` 2.31.0, `@imagekit/next` 2.1.6, `@e2b/desktop` 2.5.0. On revérifie au moment d'installer.
+- **Versions au 26/10/2026** : `ai` 7.0.155 et `@ai-sdk/google` 4.0.107 (installés le 28/10/2026 ; `@openai/agents` 0.21.0 non installé, voir D1), `zod` 4.6.7, `inngest` 4.26.0, `better-auth` 1.7.14, `drizzle-orm` 0.45.4, `@google/genai` 2.31.0, `@imagekit/next` 2.1.6, `@e2b/desktop` 2.5.0. On revérifie au moment d'installer.
 - **Gemini à la place d'OpenAI** : la vidéo s'appuie sur l'outil de recherche web *hébergé par OpenAI*, qui ne marche pas avec Gemini. Au chapitre 12, on écrira notre propre outil de recherche, ou on utilisera la recherche Google intégrée à Gemini si elle se combine avec nos autres outils (à vérifier).
 - **Quotas de l'offre gratuite Gemini** : limites par minute et par jour (chiffres différents selon les sources). Un plan de l'agent maître déclenche plusieurs appels : on surveillera les erreurs 429 (« trop de requêtes ») et on limitera la concurrence dans Inngest.
 - **Next.js 16 et l'auth** : `middleware.ts` est déprécié et renommé `proxy.ts`. Next recommande de vérifier la session **côté serveur** (layouts, actions) plutôt que de reposer uniquement sur le proxy. Better Auth s'utilise ainsi.
@@ -212,6 +217,8 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - **Jours et fuseau** : les dates sont en UTC dans la base, mais « aujourd'hui » et le découpage de la bande des 7 jours se font en `Europe/Paris` (`src/lib/overview-queries.ts`). Testé à la frontière : un post à 00 h 30 le 9 à Paris (23 h 30 UTC le 8) n'est pas compté le 8. `queryOverviewUnchecked` ne vérifie pas la propriété : seul `getOverview` (DAL) doit l'appeler.
 
 - **Mouvement réduit et thème dans les tests** : un navigateur peut recevoir `prefers-reduced-motion: reduce` (réglage d'animations du système) et `prefers-color-scheme: dark` sans qu'on l'ait demandé. Le site les respecte : la pastille « en cours » ne respire pas et les personnages « au travail » ne bougent pas. Conséquence pour les tests : toujours fixer explicitement ces deux préférences avant de mesurer une animation ou une couleur.
+- **Une erreur simulée n'est pas une erreur réelle** : au chapitre 9, 26 contrôles passaient avec un quota simulé, et c'est un vrai quota Gemini épuisé (429) qui a montré que l'AI SDK enveloppe l'erreur dans un `RetryError` : le quota n'était pas reconnu. Règle : quand l'occasion se présente d'observer une vraie panne, la tester dans le vrai navigateur, et garder un test de non-régression qui n'en dépend pas (`statusOf`).
+- **Taper avant l'hydratation, cliquer avant l'activation** : les tests de bout en bout doivent attendre que la page soit interactive (props React présentes sur le champ) et que le bouton soit actif, sinon ils réussissent ou échouent selon la vitesse du serveur.
 - **Zones cliquables qui se recouvrent** : au chapitre 8, les étiquettes larges du bureau (« planificateur », « analytique ») recouvraient les personnages voisins ; cliquer au centre de Recherche ouvrait Planificateur. Seul un test qui clique au vrai point l'a montré (`elementFromPoint` sur chaque personnage). Règle : l'étiquette est le lien (clavier, lecteur d'écran) et passe au-dessus ; le personnage est un lien réservé à la souris (`aria-hidden`, `tabIndex -1`).
 - **Une capture vaut plus que des classes CSS** : au chapitre 7, 31 contrôles passaient alors que les étiquettes étaient illisibles (C = O) ; seule la capture l'a montré, puis un test de non-chevauchement a trouvé le seuil réel (512 px). Pour tout rendu visuel, regarder la capture **et** ajouter la mesure qui l'aurait trahi.
 
@@ -233,6 +240,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - [ ] **Chapitre 6** (en cours, branche `ch6-layout`) : barre latérale adaptée, routes `/dashboard/[campaignId]/…` avec isolation, menu (sélecteur, 7 sections, profil), en-tête avec « Créer un post », audit d'accessibilité. Reste : pull request et relecture
 - [ ] **Chapitre 7** (en cours, branche `ch7-vue-ensemble`) : table `posts`, requêtes de la vue d'ensemble (fuseau Paris), bureau isométrique, page `/overview` (3 cartes, bande de 7 jours, listes). Testé : 44 contrôles + axe. Reste : documentation finale, pull request et relecture
 - [ ] **Chapitre 8** (en cours, branche `ch8-agents`, empilée sur `ch7-vue-ensemble`) : page Agents (équipe, onglets Discussion / Tâches / Historique / Réglages, journal en direct), composant de chat unique, panneau de chat à gauche ouvert depuis le bureau (adresse `?chat=`). Aucune IA : tout est honnêtement vide ou désactivé jusqu'au chapitre 9. Testé : 67 contrôles + axe. Reste : pull request et relecture
+- [ ] **Chapitre 9** (en cours, branche `ch9-agents-gemini`) : consignes des 5 agents et de leur équipe, liste de modèles avec repli, table `messages`, chat serveur (`chat-service`, limite de 10 messages par minute), chat branché sur la page Agents et dans le panneau du bureau. AI SDK à la place du SDK OpenAI Agents (D1 révisée). Reste : tests de refus entre agents sur toute l'équipe, PR et relecture
 - [ ] Phase 1 : [ ] 5 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)

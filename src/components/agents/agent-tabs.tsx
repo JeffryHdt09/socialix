@@ -4,6 +4,7 @@ import { Tabs } from "radix-ui";
 
 import { AgentChat } from "@/components/agents/agent-chat";
 import type { Agent } from "@/lib/agents";
+import type { ChatMessage } from "@/lib/chat-types";
 import { cn } from "@/lib/utils";
 
 // Les quatre onglets de l'agent ouvert (PAGES.md, fiche 5). Radix donne le clavier de la norme ARIA : flèches gauche/droite
@@ -22,7 +23,7 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="rounded-xl border border-dashed border-border p-5 text-[15px] text-muted-foreground">{children}</p>;
 }
 
-export function AgentTabs({ agent }: { agent: Agent }) {
+export function AgentTabs({ agent, campaignId, initialMessages }: { agent: Agent; campaignId: string; initialMessages: ChatMessage[] }) {
   return (
     <Tabs.Root defaultValue="discussion" className="flex min-w-0 flex-col gap-5">
       <Tabs.List aria-label={`Onglets de ${agent.name}`} className="flex flex-wrap gap-1 border-b border-border">
@@ -41,8 +42,10 @@ export function AgentTabs({ agent }: { agent: Agent }) {
         ))}
       </Tabs.List>
 
-      <Tabs.Content value="discussion" className={PANEL}>
-        <AgentChat agent={agent} />
+      {/* forceMount : la discussion reste en mémoire quand on change d'onglet (sinon elle repartirait de la liste du serveur et
+          perdrait ce qu'on vient d'écrire) ; `hidden` la masque tant qu'elle n'est pas l'onglet courant. */}
+      <Tabs.Content value="discussion" forceMount className={cn(PANEL, "data-[state=inactive]:hidden")}>
+        <AgentChat agent={agent} campaignId={campaignId} initialMessages={initialMessages} />
       </Tabs.Content>
       <Tabs.Content value="taches" className={PANEL}>
         <Empty>Aucune tâche pour l’instant. Les tâches que le Maître répartit à {agent.name} apparaîtront ici, avec leur état (chapitres 10 et 11).</Empty>

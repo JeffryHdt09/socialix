@@ -21,7 +21,7 @@ Application de gestion de réseaux sociaux par une équipe d'agents IA : un agen
 
 - Next.js 16 (App Router, `src/`), React 19, TypeScript, Tailwind CSS v4, ESLint. shadcn/ui (base Radix, chapitre 4) : composants dans `src/components/ui/`, déjà adaptés à la charte.
 - Base et auth (chapitre 3) : Drizzle ORM + PostgreSQL sur Supabase (Session pooler), Better Auth (e-mail et mot de passe, Google ; comptes dans notre base). Contrôle d’accès : `src/proxy.ts` (cookie, optimiste) puis `verifySession()` de `src/lib/dal.ts` dans chaque page privée.
-- À venir : stockage (Supabase Storage), Inngest, OpenAI Agents SDK avec un modèle **Gemini**, ImageKit, service de publication derrière une interface « publicateur ».
+- À venir : stockage (Supabase Storage), Inngest, AI SDK (Vercel) avec un modèle **Gemini** (le SDK OpenAI Agents reste candidat au chapitre 10), ImageKit, service de publication derrière une interface « publicateur ».
 
 ## Commandes
 
