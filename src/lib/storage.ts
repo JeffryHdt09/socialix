@@ -21,9 +21,12 @@ function readConfig() {
   // vide, sans erreur. On exige donc S3_PUBLIC_BASE_URL dans ce cas, et on refuse de démarrer sans elle.
   // « || » et non « ?? » : une variable écrite vide (S3_PUBLIC_BASE_URL=) vaut une chaîne vide, que « ?? » garderait.
   const configuredBase = S3_PUBLIC_BASE_URL?.trim().replace(/\/$/, "");
-  const isSupabase = new URL(S3_ENDPOINT).hostname.endsWith(".supabase.co");
+  // On reconnaît Supabase à son CHEMIN (/storage/v1/s3), pas à son domaine : l'instance hébergée
+  // (https://<projet>.storage.supabase.co/storage/v1/s3) et celle lancée en local avec la CLI
+  // (http://127.0.0.1:54321/storage/v1/s3) ont le même chemin, donc la même adresse publique.
+  const isSupabase = new URL(S3_ENDPOINT).pathname.replace(/\/$/, "").endsWith("/storage/v1/s3");
   if (!configuredBase && !isSupabase) {
-    throw new Error("Stockage non configuré : avec un fournisseur autre que Supabase, renseigner S3_PUBLIC_BASE_URL (adresse publique des fichiers, voir .env.example).");
+    throw new Error("Stockage non configuré : le point d'accès S3 ne ressemble pas à celui de Supabase (il ne se termine pas par /storage/v1/s3) : renseigner S3_PUBLIC_BASE_URL, l'adresse publique des fichiers (voir .env.example).");
   }
   const publicBase = configuredBase || `${new URL(S3_ENDPOINT).origin}/storage/v1/object/public/${S3_BUCKET_LOGOS}`;
   return { S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, bucket: S3_BUCKET_LOGOS, publicBase };
