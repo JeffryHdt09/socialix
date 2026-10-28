@@ -200,6 +200,10 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 
 - **Téléversement de fichiers (chapitre 5)** : Next refuse par défaut un corps de Server Action de plus de 1 Mo ; `next.config.ts` le relève à 4 Mo (`experimental.serverActions.bodySizeLimit`). Le bucket Supabase n'impose ni taille ni type : tout est contrôlé côté serveur sur les **octets** reçus (`src/lib/logo-check.ts` : taille, signature PNG / JPEG / WebP). Le nom du fichier est généré par le serveur, jamais repris du navigateur. Un fichier supprimé du stockage peut rester servi par le CDN de Supabase pendant environ une minute s'il avait déjà été lu : sans conséquence pour des logos publics, mais à retenir pour des fichiers privés (chapitre 12 : utiliser des liens signés).
 
+- **Isolation des données (chapitre 6)** : au chapitre 6, la route `/dashboard/[campaignId]` doit chercher la campagne par `id` **et** `user_id`, et répondre 404 (`notFound()`) si elle n'existe pas ou n'appartient pas à l'utilisateur, sans distinguer les deux cas. Un identifiant qui n'est pas un UUID doit aussi donner 404, pas une erreur de base. À tester avec deux comptes, comme `getMyCampaigns` l'a été au chapitre 5.
+- **Redirection après connexion** : elle vit dans la page `/dashboard` (sans campagne, `redirect("/campaigns/new")`), pas dans les formulaires de connexion : le chemin est le même pour l'e-mail et pour Google. Au chapitre 6, « avec campagne » mènera à la vue d'ensemble de la dernière campagne ouverte.
+- **Tests de bout en bout** : un test avec un vrai navigateur a trouvé deux défauts que `tsc`, `lint` et `build` laissaient passer (bouton « Continuer » qui envoyait le formulaire, image du décor non chargée dans une zone cachée). Pour une page interactive, un test de ce type fait partie de « fini ».
+
 ## 9. Avancement
 
 - [x] Squelette Next.js 16.4.3 généré dans `socialix` (TypeScript, Tailwind v4, ESLint, `src/`, App Router)
@@ -214,6 +218,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - [x] **Chapitre 2** : dépôt public GitHub, CodeRabbit, première pull request fusionnée (n° 1)
 - [x] **Chapitre 3** : Supabase (PostgreSQL 17) + Drizzle + Better Auth : migrations `0000_auth` et `0001_enable-rls`, pages `/sign-in` et `/sign-up` (règles de mot de passe CNIL), connexion Google, `/dashboard` protégé (proxy + `verifySession`)
 - [x] **Chapitre 4** : shadcn/ui (base Radix) avec la charte de `docs/DESIGN.md` : variables Jour/Nuit, composants `Button`, `Input`, `Label`, `DropdownMenu` adaptés (44 px, arrondi 10 px, focus encre), bouton Jour/Nuit (`next-themes`, classe `dark`)
+- [ ] **Chapitre 5** (en cours, branche `ch5-campagne`) : table `campaigns`, règles de validation, stockage S3 des logos, page `/campaigns/new` en 2 étapes, liste sur `/dashboard`, redirections. Reste : pull request et relecture
 - [ ] Phase 1 : [ ] 5 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)

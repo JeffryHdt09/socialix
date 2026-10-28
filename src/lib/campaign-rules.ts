@@ -32,6 +32,10 @@ export type CampaignIconKey = (typeof CAMPAIGN_ICON_KEYS)[number];
 // le refuse tant que le décor n'est pas créé (PLAN.md, chapitre 7).
 export const OFFICES = ["wooden", "modern"] as const;
 export const AVAILABLE_OFFICES = ["wooden"] as const;
+export const OFFICE_LABELS: Record<(typeof OFFICES)[number], string> = {
+  wooden: "Atelier bois",
+  modern: "Bureau moderne",
+};
 
 // Le logo téléversé (3 Mo, PNG, JPG ou WebP) n'est pas décrit ici : il se contrôle sur les octets du
 // fichier, dans src/lib/logo-check.ts.
