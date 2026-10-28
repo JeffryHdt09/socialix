@@ -98,14 +98,14 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
                     return note ? <p className="mt-0.5 text-[13px] text-muted-foreground">{note}</p> : null;
                   })()}
                   <details className="mt-1 text-[13px]">
-                    <summary className="inline-flex min-h-7 cursor-pointer items-center text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
+                    <summary className="inline-flex min-h-11 cursor-pointer items-center text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                       Voir la consigne<span className="sr-only"> de la tâche {pad(t.position)}</span>
                     </summary>
                     <p className="mt-1 whitespace-pre-wrap break-words">{t.instruction}</p>
                   </details>
                   {t.result !== null && (
                     <details className="mt-1 text-[13px]">
-                      <summary className="inline-flex min-h-7 cursor-pointer items-center font-medium underline underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
+                      <summary className="inline-flex min-h-11 cursor-pointer items-center font-medium underline underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                         Voir le résultat<span className="sr-only"> de la tâche {pad(t.position)}</span>
                       </summary>
                       <p className="mt-1 whitespace-pre-wrap break-words rounded-md border border-border bg-background p-3">{t.result}</p>
@@ -130,12 +130,11 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
             <div role="group" aria-label="Confirmer l’annulation du plan" className="flex flex-col gap-2">
               <p className="text-[14px]">Annuler ce plan ? Les tâches terminées sont conservées, les autres sont annulées.</p>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" size="sm" disabled={busy} onClick={confirmCancel}>
+                <Button type="button" variant="outline" disabled={busy} onClick={confirmCancel}>
                   {busy ? "Annulation…" : "Oui, annuler le plan"}
                 </Button>
                 <Button
                   type="button"
-                  size="sm"
                   ref={keepRef}
                   disabled={busy}
                   onClick={() => {
@@ -152,7 +151,6 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
             <Button
               type="button"
               variant="outline"
-              size="sm"
               ref={cancelRef}
               onClick={() => {
                 setConfirming(true);

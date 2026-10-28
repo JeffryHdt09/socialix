@@ -12,6 +12,7 @@ import { MasterPlanError, runMaster } from "@/lib/master";
 import { getOwnedProject } from "@/lib/ownership";
 import type { PlanDraft, ValidPlan } from "@/lib/plan";
 import { readPlans } from "@/lib/plan-queries";
+import type { PlanView } from "@/lib/plan-types";
 import { savePlan } from "@/lib/plan-service";
 
 // Le cœur du chat, SANS rien de propre à Next (ni cookies, ni session) : le propriétaire (`userId`) est un paramètre,
@@ -96,25 +97,14 @@ export async function sendMessageAs(userId: string, projectId: string, agentId: 
 
   // Tout dans UNE transaction (tout ou rien) : ton message, le plan et ses tâches s'il y en a un, puis la réponse qui le présente.
   // Dates explicites : dans une transaction, now() est figé, les deux messages auraient la même date et l'ordre serait ambigu.
+  let userRow: typeof messages.$inferSelect, agentRow: typeof messages.$inferSelect;
   try {
-    const [userRow, agentRow] = await db.transaction(async (tx) => {
+    [userRow, agentRow] = await db.transaction(async (tx) => {
       const [u] = await tx.insert(messages).values({ projectId, agent: agent.id, role: "user", content: text, createdAt: askedAt }).returning();
       const planId = reply.plan ? await savePlan(tx, projectId, text, reply.plan.valid, reply.plan.raw) : null;
       const [a] = await tx.insert(messages).values({ projectId, agent: agent.id, role: "assistant", content: reply.text.slice(0, MAX_REPLY_LENGTH), model: reply.model, planId, createdAt: new Date() }).returning();
       return [u, a];
     });
-    // Le plan est enregistré : on lance son exécution. Si Inngest ne répond pas (serveur de dev éteint, panne), le plan reste
-    // enregistré et le balayage régulier lancera ses tâches dès que le service revient : la réponse du Maître n'est pas perdue.
-    if (agentRow.planId) {
-      try {
-        await (options.onPlanCreated ?? sendPlanCreated)(agentRow.planId);
-      } catch (error) {
-        console.error("Plan : le lancement de l'exécution a échoué", error instanceof Error ? error.name : "?");
-      }
-    }
-    // Le plan complet repart avec la réponse : l'interface affiche sa carte tout de suite, sans second aller-retour
-    const [createdPlan] = agentRow.planId ? await readPlans(userId, projectId, { onlyPlanId: agentRow.planId }) : [];
-    return { ok: true, messages: [toChatMessage(userRow), toChatMessage(agentRow)], plan: createdPlan };
   } catch (error) {
     // Par exemple un projet supprimé pendant que le modèle réfléchissait : rien n'est enregistré, et on le dit.
     // On ne journalise JAMAIS error.message : celui de la base recopie les paramètres de la requête, donc le texte écrit par la
@@ -123,4 +113,27 @@ export async function sendMessageAs(userId: string, projectId: string, agentId: 
     console.error("Chat : l'enregistrement a échoué", code ?? (error instanceof Error ? error.name : "?"));
     return { ok: false, error: "La réponse n’a pas pu être enregistrée. Réessaie dans un instant." };
   }
+
+  // Dès ici, TOUT est enregistré : rien de ce qui suit ne doit répondre « n'a pas pu être enregistrée » (la personne renverrait
+  // sa demande et le Maître créerait un second plan : remarque de CodeRabbit sur la PR n°9).
+  // Le plan est enregistré : on lance son exécution. Si Inngest ne répond pas (serveur de dev éteint, panne), le plan reste
+  // enregistré et le balayage régulier lancera ses tâches dès que le service revient : la réponse du Maître n'est pas perdue.
+  if (agentRow.planId) {
+    try {
+      await (options.onPlanCreated ?? sendPlanCreated)(agentRow.planId);
+    } catch (error) {
+      console.error("Plan : le lancement de l'exécution a échoué", error instanceof Error ? error.name : "?");
+    }
+  }
+  // Le plan complet repart avec la réponse : l'interface affiche sa carte tout de suite, sans second aller-retour. Si cette
+  // relecture échoue (base occupée), la réponse part quand même ; la carte apparaîtra au prochain chargement de la page.
+  let createdPlan: PlanView | undefined;
+  if (agentRow.planId) {
+    try {
+      [createdPlan] = await readPlans(userId, projectId, { onlyPlanId: agentRow.planId });
+    } catch (error) {
+      console.error("Plan : la relecture après enregistrement a échoué", error instanceof Error ? error.name : "?");
+    }
+  }
+  return { ok: true, messages: [toChatMessage(userRow), toChatMessage(agentRow)], plan: createdPlan };
 }

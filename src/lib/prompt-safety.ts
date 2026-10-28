@@ -9,7 +9,8 @@ export type ScanResult = { safe: true } | { safe: false; reasons: string[] };
 
 // Caractères invisibles : ils permettent de cacher une consigne que la personne ne voit pas à l'écran
 // (espaces de largeur nulle, marques de sens d'écriture, séparateurs invisibles, « tags » Unicode).
-const INVISIBLE = /[​-‏‪-‮⁠-⁤﻿]|[\u{E0000}-\u{E007F}]/u;
+// (espaces de largeur nulle, marques de sens d'écriture, isolats bidirectionnels U+2066 à U+2069, « tags » Unicode)
+const INVISIBLE = /[​-‏‪-‮⁠-⁤⁦-⁩﻿]|[󠀀-󠁿]/u;
 
 const RULES: { reason: string; pattern: RegExp }[] = [
   { reason: "demande d'ignorer les consignes précédentes", pattern: /\b(ignore|ignorez|oublie|oubliez|disregard|forget)\b[^.\n]{0,40}\b(instructions?|consignes?|r[èe]gles?|rules?|prompts?)\b/i },
