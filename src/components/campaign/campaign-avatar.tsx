@@ -18,7 +18,9 @@ export function CampaignAvatar({
   className?: string;
 }) {
   const Icon = iconKey ? campaignIcons[iconKey].Icon : null;
-  const initial = name.trim().charAt(0).toUpperCase();
+  // Array.from découpe par caractère complet : charAt(0) coupe un emoji (« 🍕 Pizza ») en deux moitiés
+  // et afficherait un caractère cassé.
+  const initial = (Array.from(name.trim())[0] ?? "").toUpperCase();
 
   return (
     <span

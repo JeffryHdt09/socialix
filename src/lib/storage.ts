@@ -17,8 +17,10 @@ function readConfig() {
   }
   // Adresse publique d'un objet. Par défaut, celle de Supabase ; pour un autre fournisseur,
   // la donner dans S3_PUBLIC_BASE_URL (sans « / » final).
+  // « || » et non « ?? » : une variable écrite vide (S3_PUBLIC_BASE_URL=, comme dans .env.example) vaut
+  // une chaîne vide, que « ?? » garderait, ce qui donnerait des adresses de logos cassées sans erreur.
   const publicBase =
-    S3_PUBLIC_BASE_URL?.replace(/\/$/, "") ??
+    S3_PUBLIC_BASE_URL?.trim().replace(/\/$/, "") ||
     `${new URL(S3_ENDPOINT).origin}/storage/v1/object/public/${S3_BUCKET_LOGOS}`;
   return { S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, bucket: S3_BUCKET_LOGOS, publicBase };
 }

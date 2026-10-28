@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { campaigns } from "@/db/schema";
 import { campaignSchema, MAX_CAMPAIGNS_PER_USER } from "@/lib/campaign-rules";
+import { createCampaignWithinLimit } from "@/lib/campaign-store";
 import { getSession } from "@/lib/dal";
 import { readLogoFile } from "@/lib/logo-upload";
 import { deleteLogo, uploadLogo } from "@/lib/storage";
@@ -51,27 +52,39 @@ export async function createCampaign(_previous: CreateCampaignState, formData: F
     };
   }
 
-  // 3. Le plafond par utilisateur.
-  const [{ total }] = await db.select({ total: count() }).from(campaigns).where(eq(campaigns.userId, userId));
-  if (total >= MAX_CAMPAIGNS_PER_USER) {
-    return { message: `Tu as atteint la limite de ${MAX_CAMPAIGNS_PER_USER} campagnes.` };
-  }
+  const limitMessage = `Tu as atteint la limite de ${MAX_CAMPAIGNS_PER_USER} campagnes.`;
 
-  // 4. Envoi du logo, puis écriture en base. Si la base échoue après l'envoi, on supprime le logo :
-  //    sinon il resterait dans le stockage sans aucune campagne qui le référence.
+  // 3. Refus rapide du plafond, avant d'envoyer un logo pour rien. Ce n'est qu'un confort : deux envois
+  //    simultanés peuvent passer ici ensemble. Le contrôle qui fait foi est dans createCampaignWithinLimit.
+  const [{ total }] = await db.select({ total: count() }).from(campaigns).where(eq(campaigns.userId, userId));
+  if (total >= MAX_CAMPAIGNS_PER_USER) return { message: limitMessage };
+
+  // 4. Envoi du logo, puis écriture en base. Si la campagne n'est finalement pas créée (plafond atteint
+  //    entre-temps, ou erreur de base), on supprime le logo : sinon il resterait dans le stockage sans
+  //    aucune campagne qui le référence.
   let logoKey: string | null = null;
+  const discardLogo = async () => {
+    if (!logoKey) return;
+    // Si la suppression échoue aussi, on ne l'avale pas : le fichier reste sans propriétaire, et cette
+    // ligne dans le journal permet de le retrouver et de le supprimer à la main.
+    await deleteLogo(userId, logoKey).catch((error) => console.error(`Logo orphelin à supprimer à la main : ${logoKey}`, error));
+  };
   try {
     if (logo) logoKey = await uploadLogo(userId, logo);
-    await db.insert(campaigns).values({
+    const outcome = await createCampaignWithinLimit({
       userId,
       name: parsed.data.name,
       office: parsed.data.office,
       // Le logo téléversé l'emporte sur l'icône si les deux arrivent (le formulaire les rend exclusifs).
       icon: logoKey ? `upload:${logoKey}` : parsed.data.icon ? `icon:${parsed.data.icon}` : null,
     });
+    if (outcome === "limit") {
+      await discardLogo();
+      return { message: limitMessage };
+    }
   } catch (error) {
     console.error("Création de campagne : échec", error);
-    if (logoKey) await deleteLogo(userId, logoKey).catch(() => {});
+    await discardLogo();
     return { message: "La campagne n’a pas pu être créée, réessaie." };
   }
 
