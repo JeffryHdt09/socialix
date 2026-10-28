@@ -11,13 +11,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 // - « Avec l'équipe IA » mène à la page Agents (le chat arrive aux chapitres 8 à 12) ;
 // - « À la main » ouvrira l'éditeur de post, qui n'existe qu'au chapitre 13 : on le montre grisé, avec la
 //   mention « bientôt », plutôt que de cacher l'option ou de la laisser mener nulle part.
-export function CreatePostMenu() {
+export function CreatePostMenu({ variant = "default" }: { variant?: "default" | "outline" }) {
   const { campaignId } = useParams<{ campaignId: string }>();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button>
+        <Button variant={variant}>
           Créer un post
           <ChevronDown aria-hidden="true" />
         </Button>

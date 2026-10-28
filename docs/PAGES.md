@@ -77,6 +77,8 @@
 
 ## 4. Vue d'ensemble · ch. 7 (panneau de chat : ch. 8)
 
+> **Réalisée au chapitre 7**, avec trois écarts assumés : les agents du bureau ne sont pas cliquables avant le chapitre 8 (pas de panneau de chat encore) ; « Activité récente » affiche un état vide honnête jusqu'aux chapitres 10-11 ; pas d'emoji sur les étiquettes, conformément à DESIGN.md.
+
 **Rôle :** voir en 5 secondes où en est la campagne et ce qui attend une décision.
 
 **Contenu (maquette « Jour ») :**

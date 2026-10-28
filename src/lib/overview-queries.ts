@@ -4,11 +4,12 @@ import { and, asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { posts } from "@/db/schema";
+import { APP_TIMEZONE } from "@/lib/dates";
 
 // Les calculs de la vue d'ensemble d'une campagne (PAGES.md, fiche 4). Toutes les dates sont stockées en UTC ;
 // « aujourd'hui » et le découpage en jours se font dans le fuseau de l'utilisateur (PLAN.md : Europe/Paris par
 // défaut). Sans cela, un post programmé à 00 h 30 heure de Paris tomberait la veille, puisqu'il est 23 h 30 en UTC.
-export const OVERVIEW_TIMEZONE = "Europe/Paris";
+export const OVERVIEW_TIMEZONE = APP_TIMEZONE;
 
 export type OverviewDay = {
   day: string; // « 2026-11-02 », jour civil dans le fuseau ci-dessus
@@ -17,6 +18,8 @@ export type OverviewDay = {
 };
 export type ReviewItem = { id: string; title: string; platforms: string[]; scheduledAt: Date | null; imageUrl: string | null };
 export type Overview = {
+  // Tous les posts de la campagne, tous statuts confondus : distingue « campagne vide » de « rien à relire ».
+  totalPosts: number;
   scheduledNext7Days: number;
   strip: OverviewDay[]; // toujours 7 jours, aujourd'hui compris, même sans aucun post
   toReviewCount: number;
@@ -49,7 +52,8 @@ export async function queryOverviewUnchecked(campaignId: string, now: Date = new
       group by d
       order by d`),
     db.execute(sql`
-      select count(*) filter (where status = 'to_review')::int as to_review,
+      select count(*)::int as total,
+             count(*) filter (where status = 'to_review')::int as to_review,
              count(*) filter (where status = 'published'
                                 and scheduled_at >= ${nowIso}::timestamptz - interval '30 days'
                                 and scheduled_at <= ${nowIso}::timestamptz)::int as published_30
@@ -65,8 +69,9 @@ export async function queryOverviewUnchecked(campaignId: string, now: Date = new
   ]);
 
   const strip = (stripRows as unknown as OverviewDay[]).map((r) => ({ day: r.day, scheduled: Number(r.scheduled), unconfirmed: Number(r.unconfirmed) }));
-  const counts = (countRows as unknown as { to_review: number; published_30: number }[])[0];
+  const counts = (countRows as unknown as { total: number; to_review: number; published_30: number }[])[0];
   return {
+    totalPosts: Number(counts.total),
     scheduledNext7Days: strip.reduce((total, d) => total + d.scheduled, 0),
     strip,
     toReviewCount: Number(counts.to_review),

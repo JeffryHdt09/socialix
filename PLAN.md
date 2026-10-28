@@ -230,6 +230,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - [x] **Chapitre 4** : shadcn/ui (base Radix) avec la charte de `docs/DESIGN.md` : variables Jour/Nuit, composants `Button`, `Input`, `Label`, `DropdownMenu` adaptés (44 px, arrondi 10 px, focus encre), bouton Jour/Nuit (`next-themes`, classe `dark`)
 - [ ] **Chapitre 5** (en cours, branche `ch5-campagne`) : table `campaigns`, règles de validation, stockage S3 des logos, page `/campaigns/new` en 2 étapes, liste sur `/dashboard`, redirections. Reste : pull request et relecture
 - [ ] **Chapitre 6** (en cours, branche `ch6-layout`) : barre latérale adaptée, routes `/dashboard/[campaignId]/…` avec isolation, menu (sélecteur, 7 sections, profil), en-tête avec « Créer un post », audit d'accessibilité. Reste : pull request et relecture
+- [ ] **Chapitre 7** (en cours, branche `ch7-vue-ensemble`) : table `posts`, requêtes de la vue d'ensemble (fuseau Paris), bureau isométrique, page `/overview` (3 cartes, bande de 7 jours, listes). Testé : 44 contrôles + axe. Reste : documentation finale, pull request et relecture
 - [ ] Phase 1 : [ ] 5 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)
