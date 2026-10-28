@@ -65,6 +65,32 @@
 - **Aperçus** : `docs/personnages/apercu.html` (personnages) et `docs/personnages/bureau.html` (personnages dans le décor).
 - **À faire au chapitre 7** : un léger assombrissement des personnages en thème Nuit, pour qu'ils baignent dans la même lumière que la pièce.
 
+## Implémentation (chapitre 4)
+
+- **Variables** : `src/app/globals.css`. Les couleurs ci-dessus y portent les noms de shadcn/ui, pour que ses composants les utilisent sans réglage :
+
+  | Rôle de ce document | Variable shadcn | Classe Tailwind |
+  |---|---|---|
+  | Fond | `--background` | `bg-background` |
+  | Surface | `--card`, `--popover` | `bg-card` |
+  | Surface 2 | `--muted` | `bg-muted` |
+  | Encre (texte) | `--foreground` | `text-foreground` |
+  | Encre (bouton principal) | `--primary` | `bg-primary` |
+  | Texte secondaire | `--muted-foreground` | `text-muted-foreground` |
+  | Filet | `--border`, `--input` | `border-border` |
+  | **Accent** | **`--signal`** | **`bg-signal`** |
+  | Succès | `--success` | `text-success` |
+  | Erreur | `--destructive` | `text-destructive` |
+  | Inactif (indicateurs, pas de texte) | `--inactive` | `bg-inactive` |
+
+  **Le gris « inactif » ne sert jamais pour du texte** : son contraste est d'environ 1,7:1 en Jour et 2,8:1 en Nuit, sous le minimum de 4,5:1. Il colore seulement des indicateurs (pastille d'un agent au repos). Un texte inactif ou discret prend `text-muted-foreground`.
+
+  Attention : `--accent` est, chez shadcn, le **fond de survol** (beige en Jour, bleu nuit en Nuit), pas notre jaune.
+- **Thème Nuit** : la classe `dark` sur `<html>`, posée par `next-themes` (réglage de l'appareil par défaut). Le bouton Jour / Nuit / Système est `src/components/theme-toggle.tsx`.
+- **Composants** : `src/components/ui/` (shadcn/ui, base Radix). Ils ont été modifiés : 44 px de haut (`sm` à 36 px, 44 px sur écran tactile), arrondi de 10 px, bordure qui passe à l'encre au focus, contour de focus encre global, mouvement de 150 ms, pas de variante jaune.
+- **Ajouter un composant** : `npx shadcn@latest add <nom>`, puis relire le fichier créé et corriger ce qui ne respecte pas la charte (hauteurs inférieures à 44 px, `rounded-lg` ou `rounded-xl` à remplacer par la bonne valeur, anneaux de focus, `dark:` redondants, ombres sur ce qui ne flotte pas, `transition-all`).
+- **Arrondis** : `rounded-sm` 6 px, `rounded-md` 10 px (champs, boutons), `rounded-lg` 12 px (listes), `rounded-xl` 16 px (cartes, panneaux), `rounded-4xl` pilule.
+
 ## Accessibilité
 
 - Contraste du texte ≥ 4,5:1 (vérifié pour les couleurs ci-dessus sur leurs surfaces).

@@ -19,7 +19,7 @@ Application de gestion de réseaux sociaux par une équipe d'agents IA : un agen
 
 ## Stack
 
-- Next.js 16 (App Router, `src/`), React 19, TypeScript, Tailwind CSS v4, ESLint. shadcn/ui à partir du chapitre 4.
+- Next.js 16 (App Router, `src/`), React 19, TypeScript, Tailwind CSS v4, ESLint. shadcn/ui (base Radix, chapitre 4) : composants dans `src/components/ui/`, déjà adaptés à la charte.
 - Base et auth (chapitre 3) : Drizzle ORM + PostgreSQL sur Supabase (Session pooler), Better Auth (e-mail et mot de passe, Google ; comptes dans notre base). Contrôle d’accès : `src/proxy.ts` (cookie, optimiste) puis `verifySession()` de `src/lib/dal.ts` dans chaque page privée.
 - À venir : stockage (Supabase Storage), Inngest, OpenAI Agents SDK avec un modèle **Gemini**, ImageKit, service de publication derrière une interface « publicateur ».
 
@@ -40,6 +40,7 @@ Application de gestion de réseaux sociaux par une équipe d'agents IA : un agen
 - **Secrets** uniquement dans `.env.local` (ignoré par Git). Jamais de clé dans le code, un commit ou un log.
 - **Base de données** : toute nouvelle table active RLS dans sa migration (Supabase expose sinon la table par sa Data API). Mots de passe : règles dans `src/lib/password-rules.ts`, contrôlées côté serveur.
 - **Interface en français.** Pas de faux contenu : des emplacements signalés entre crochets (`[Prénom]`) ou un état vide honnête.
+- **Composants d'interface** : utiliser `Button`, `Input`, `Label`… de `src/components/ui/` et les couleurs par leurs noms shadcn (`bg-card`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`, `text-destructive`, `text-success`). Pas de style de bouton ou de champ écrit à la main. Le jaune s'appelle `signal` (`bg-signal`) : il signale, ce n'est jamais un bouton. Après un `npx shadcn add`, adapter le composant (voir « Implémentation » dans `docs/DESIGN.md`).
 - **Design** : respecter `docs/DESIGN.md` (un seul accent `#E6E05A` qui signale, bouton principal encre, hachures = pas encore confirmé, pas de dégradés ni d'emojis dans l'interface).
 - **Données clients** : jamais dans une offre gratuite qui s'en sert pour l'entraînement (offre gratuite de Gemini comprise).
 - **Publication** : relecture humaine avant toute publication, uniquement via les API officielles. Jamais d'agent qui se connecte aux comptes sociaux d'un client avec un navigateur.

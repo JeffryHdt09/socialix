@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { verifySession } from "@/lib/dal";
 
 import { SignOutButton } from "./sign-out-button";
@@ -14,7 +15,10 @@ export default function DashboardPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-4 py-10 sm:px-10">
       <header className="flex items-center justify-between gap-4">
         <span className="text-xl font-extrabold tracking-tight">Socialix</span>
-        <SignOutButton />
+        <div className="flex items-start gap-2">
+          <ThemeToggle />
+          <SignOutButton />
+        </div>
       </header>
 
       <Suspense fallback={<WelcomeSkeleton />}>
@@ -29,9 +33,9 @@ async function Welcome() {
   const { user } = await verifySession();
 
   return (
-    <section className="rounded-2xl border border-filet bg-surface p-6">
+    <section className="rounded-2xl border border-border bg-card p-6">
       <h1 className="text-[28px] font-bold tracking-tight">Bonjour, {user.name}</h1>
-      <p className="mt-1 text-[15px] text-secondaire">
+      <p className="mt-1 text-[15px] text-muted-foreground">
         Connecté avec <span className="font-mono text-[13px]">{user.email}</span>
       </p>
       <p className="mt-6 text-[15px]">
@@ -46,11 +50,11 @@ function WelcomeSkeleton() {
     <div
       role="status"
       aria-label="Chargement"
-      className="flex animate-pulse flex-col gap-3 rounded-2xl border border-filet bg-surface p-6 motion-reduce:animate-none"
+      className="flex animate-pulse flex-col gap-3 rounded-2xl border border-border bg-card p-6 motion-reduce:animate-none"
     >
-      <div className="h-8 w-56 rounded-md bg-surface-2" />
-      <div className="h-4 w-72 rounded-md bg-surface-2" />
-      <div className="mt-4 h-4 w-full rounded-md bg-surface-2" />
+      <div className="h-8 w-56 rounded-md bg-muted" />
+      <div className="h-4 w-72 rounded-md bg-muted" />
+      <div className="mt-4 h-4 w-full rounded-md bg-muted" />
     </div>
   );
 }
