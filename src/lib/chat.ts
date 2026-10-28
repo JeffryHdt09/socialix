@@ -1,6 +1,6 @@
 import "server-only";
 
-import { APICallError, ToolLoopAgent } from "ai";
+import { APICallError, RetryError, ToolLoopAgent } from "ai";
 
 import { instructionsFor } from "@/lib/agent-instructions";
 import type { AgentId } from "@/lib/agents";
@@ -20,12 +20,21 @@ export class ChatError extends Error {
   }
 }
 
+// Le code HTTP de l'erreur d'un fournisseur, ou undefined si ce n'est pas une erreur d'API (réseau coupé, délai dépassé…).
+// L'AI SDK ENVELOPPE l'erreur dans un RetryError dès qu'une relance est autorisée (maxRetries) : sans le déballer, un 429
+// (quota) n'était pas reconnu et la personne lisait « n'a pas pu répondre » au lieu de « l'équipe fait une pause »
+// (trouvé avec un vrai quota épuisé, pas avec les tests qui simulaient l'erreur).
+export function statusOf(error: unknown): number | undefined {
+  const inner = RetryError.isInstance(error) ? error.lastError : error;
+  return APICallError.isInstance(inner) ? inner.statusCode : undefined;
+}
+
 // Faut-il essayer le modèle suivant ? Oui pour : modèle retiré (404), quota (429), délai dépassé, panne du fournisseur (5xx),
 // réseau coupé, réponse vide. Non pour : requête refusée (400), clé refusée (401/403) : un autre modèle de la même clé
 // ferait pareil, mieux vaut s'arrêter tout de suite.
 export function canTryNextModel(error: unknown): boolean {
-  if (APICallError.isInstance(error)) return !(error.statusCode !== undefined && [400, 401, 403].includes(error.statusCode));
-  return true;
+  const status = statusOf(error);
+  return !(status !== undefined && [400, 401, 403].includes(status));
 }
 
 // Pose la question à l'agent, avec les consignes de son rôle et l'historique, en passant au modèle suivant si besoin.
@@ -42,9 +51,10 @@ export async function askAgent(agent: AgentId, history: ChatTurn[], models: read
       if (text) return { text, model: name };
       // Réponse vide (filtre de sécurité, modèle qui n'a rien dit) : on essaie le suivant
     } catch (error) {
-      if (APICallError.isInstance(error) && error.statusCode === 429) sawQuota = true;
+      const status = statusOf(error);
+      if (status === 429) sawQuota = true;
       // Journal serveur : le nom du modèle et le statut, jamais l'en-tête de la requête (il contient la clé)
-      console.error(`Chat : le modèle ${name} a échoué (${APICallError.isInstance(error) ? error.statusCode : error instanceof Error ? error.name : "?"})`);
+      console.error(`Chat : le modèle ${name} a échoué (${status ?? (error instanceof Error ? error.name : "?")})`);
       if (!canTryNextModel(error)) throw new ChatError("unavailable");
     }
   }

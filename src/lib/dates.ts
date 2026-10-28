@@ -10,6 +10,9 @@ export function formatPostDate(date: Date): string {
   return `${dayAndMonth.format(date)} · ${clock.format(date)}`;
 }
 
+// « 14:32 » : l’heure à Paris, pour l’étiquette d’un message de conversation.
+export const formatClock = (date: Date): string => clock.format(date);
+
 // Un « jour civil » comme « 2026-11-02 » (celui de la bande des 7 jours) n'a pas d'heure : on le lit à midi UTC et on
 // l'affiche en UTC, pour qu'aucun fuseau ne le décale d'un jour.
 const asNoonUtc = (day: string) => new Date(`${day}T12:00:00Z`);

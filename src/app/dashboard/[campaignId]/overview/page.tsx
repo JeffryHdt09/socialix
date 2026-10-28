@@ -7,7 +7,7 @@ import { ActivityList, EmptyBanner, ReviewList } from "@/components/dashboard/ov
 import { PageHeader } from "@/components/dashboard/page-header";
 import { OfficeScene } from "@/components/office/office-scene";
 import { findAgent } from "@/lib/agents";
-import { getOverview } from "@/lib/dal";
+import { getConversation, getOverview } from "@/lib/dal";
 
 export const metadata: Metadata = { title: "Vue d’ensemble · Socialix" };
 
@@ -31,6 +31,9 @@ async function OverviewContent({ params, searchParams }: Pick<PageProps<"/dashbo
   const { chat } = await searchParams;
   // getOverview vérifie que la campagne appartient à l'utilisateur AVANT de lire le moindre post.
   const overview = await getOverview(campaignId);
+  const chatAgent = findAgent(chat);
+  // La conversation du panneau, lue seulement s'il est ouvert (la propriété de la campagne est revérifiée par getConversation)
+  const conversation = chatAgent ? await getConversation(campaignId, chatAgent.id) : [];
 
   return (
     <>
@@ -59,7 +62,7 @@ async function OverviewContent({ params, searchParams }: Pick<PageProps<"/dashbo
           <OfficeScene theme="auto" agentHref={(id) => `/dashboard/${campaignId}/overview?chat=${id}`} />
         </section>
       </div>
-      <AgentChatSheet agent={findAgent(chat)} />
+      <AgentChatSheet agent={chatAgent} campaignId={campaignId} initialMessages={conversation} />
     </>
   );
 }
