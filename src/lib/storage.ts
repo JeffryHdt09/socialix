@@ -15,13 +15,17 @@ function readConfig() {
   if (!S3_ENDPOINT || !S3_REGION || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY || !S3_BUCKET_LOGOS) {
     throw new Error("Stockage non configuré : renseigner les variables S3_* dans .env.local (voir .env.example).");
   }
-  // Adresse publique d'un objet. Par défaut, celle de Supabase ; pour un autre fournisseur,
-  // la donner dans S3_PUBLIC_BASE_URL (sans « / » final).
-  // « || » et non « ?? » : une variable écrite vide (S3_PUBLIC_BASE_URL=, comme dans .env.example) vaut
-  // une chaîne vide, que « ?? » garderait, ce qui donnerait des adresses de logos cassées sans erreur.
-  const publicBase =
-    S3_PUBLIC_BASE_URL?.trim().replace(/\/$/, "") ||
-    `${new URL(S3_ENDPOINT).origin}/storage/v1/object/public/${S3_BUCKET_LOGOS}`;
+  // Adresse publique d'un objet (celle qu'on enregistre et qu'on affiche). Avec Supabase, on peut la déduire du
+  // point d'accès S3. Avec tout autre fournisseur (Cloudflare R2, MinIO, AWS), le chemin Supabase
+  // (/storage/v1/object/public/…) n'existe pas : l'envoi réussirait, mais l'adresse du logo pointerait dans le
+  // vide, sans erreur. On exige donc S3_PUBLIC_BASE_URL dans ce cas, et on refuse de démarrer sans elle.
+  // « || » et non « ?? » : une variable écrite vide (S3_PUBLIC_BASE_URL=) vaut une chaîne vide, que « ?? » garderait.
+  const configuredBase = S3_PUBLIC_BASE_URL?.trim().replace(/\/$/, "");
+  const isSupabase = new URL(S3_ENDPOINT).hostname.endsWith(".supabase.co");
+  if (!configuredBase && !isSupabase) {
+    throw new Error("Stockage non configuré : avec un fournisseur autre que Supabase, renseigner S3_PUBLIC_BASE_URL (adresse publique des fichiers, voir .env.example).");
+  }
+  const publicBase = configuredBase || `${new URL(S3_ENDPOINT).origin}/storage/v1/object/public/${S3_BUCKET_LOGOS}`;
   return { S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, bucket: S3_BUCKET_LOGOS, publicBase };
 }
 
