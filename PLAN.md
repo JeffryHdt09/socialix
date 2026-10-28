@@ -78,7 +78,7 @@ Agents (OpenAI Agents SDK)                 Outils (tools)
 | Table | Colonnes principales | Ch. |
 |---|---|---|
 | `user`, `session`, `account`, `verification` | Tables de Better Auth (générées par son CLI) : comptes, sessions en base, liaisons Google, codes de vérification | 3 |
-| `campaigns` | id, user_id, name, icon_url, office (`modern` / `wooden`), created_at | 5 |
+| `campaigns` | id (uuid), user_id (propriétaire, supprimé en cascade), name (1 à 60 caractères, contrôlé aussi par la base), icon (`icon:<nom>` icône proposée, `upload:<clé>` image téléversée, ou vide), office (`wooden` / `modern`, `wooden` par défaut), created_at (timestamptz). RLS activé | 5 |
 | `agent_messages` | id, campaign_id, agent, role (`user` / `assistant`), content, created_at — l'historique du chat | 9 |
 | `agent_plans` | id, campaign_id, request, plan (JSON), status, created_at | 10 |
 | `agent_tasks` | id, plan_id, agent, title, instruction, depends_on, status, output (JSON), repeat_interval, repeat_until, repeat_count, run_count, next_run_at | 10–11 |

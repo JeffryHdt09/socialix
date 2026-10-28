@@ -15,6 +15,13 @@
       "when": 1793137824171,
       "tag": "0001_enable-rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793148123056,
+      "tag": "0002_campaigns",
+      "breakpoints": true
     }
   ]
 }
