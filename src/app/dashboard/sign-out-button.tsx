@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
+
 import { signOutAction } from "./actions";
 
 export function SignOutButton() {
@@ -30,16 +32,11 @@ export function SignOutButton() {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
-        type="button"
-        onClick={handleSignOut}
-        disabled={pending}
-        className="h-11 rounded-[10px] border border-filet px-4 text-[14px] font-medium hover:border-encre disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <Button type="button" variant="outline" onClick={handleSignOut} disabled={pending}>
         {pending ? "Déconnexion…" : "Se déconnecter"}
-      </button>
+      </Button>
       {failed && (
-        <p role="alert" className="text-[13px] font-medium text-erreur">
+        <p role="alert" className="text-[13px] font-medium text-destructive">
           La déconnexion a échoué, réessaie.
         </p>
       )}

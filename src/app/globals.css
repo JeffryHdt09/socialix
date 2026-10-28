@@ -1,61 +1,161 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* Couleurs de docs/DESIGN.md. Thème Jour par défaut, Nuit si le système est en mode sombre.
-   Le bouton Jour/Nuit arrive au chapitre 6 ; le thème complet (shadcn) au chapitre 4. */
+/* Thème Nuit = la classe .dark sur <html>, posée par next-themes (réglage du système par défaut,
+   bouton Jour/Nuit au-dessus). C'est la convention de shadcn/ui. */
+@custom-variant dark (&:is(.dark *));
+
+/* Charte de docs/DESIGN.md, exprimée avec les noms de variables de shadcn/ui : ses composants
+   prennent ainsi nos couleurs sans réglage. Un seul accent, « signal » (jaune), qui signale
+   et n'est jamais un bouton. « accent » est le nom shadcn du fond de survol, pas notre jaune. */
 :root {
-  --fond: #ece6da;
-  --surface: #faf7f1;
-  --surface-2: #ece6da;
-  --encre: #1d1a16;
-  --secondaire: #6b6358;
-  --filet: #dcd3c3;
-  --accent: #e6e05a;
-  --succes: #2f7a4a;
-  --erreur: #b5402c;
-  --inactif: #b9af9f;
+  --background: #ece6da;
+  --foreground: #1d1a16;
+  --card: #faf7f1;
+  --card-foreground: #1d1a16;
+  --popover: #faf7f1;
+  --popover-foreground: #1d1a16;
+  --primary: #1d1a16; /* bouton principal : encre */
+  --primary-foreground: #faf7f1;
+  --secondary: #ece6da;
+  --secondary-foreground: #1d1a16;
+  --muted: #ece6da; /* champs et éléments imbriqués (« surface 2 ») */
+  --muted-foreground: #6b6358;
+  --accent: #ece6da; /* fond de survol */
+  --accent-foreground: #1d1a16;
+  --destructive: #b5402c;
+  --border: #dcd3c3;
+  --input: #dcd3c3;
+  --ring: #1d1a16;
+  --success: #2f7a4a;
+  --signal: #e6e05a;
+  --signal-foreground: #1d1a16;
+  --inactive: #b9af9f;
+  /* Graphiques (chapitre 16) : provisoire, une rampe d'encres neutres à revoir à ce moment-là. */
+  --chart-1: #1d1a16;
+  --chart-2: #6b6358;
+  --chart-3: #b9af9f;
+  --chart-4: #2f7a4a;
+  --chart-5: #b5402c;
+  /* Menu latéral (chapitre 6) */
+  --sidebar: #faf7f1;
+  --sidebar-foreground: #1d1a16;
+  --sidebar-primary: #1d1a16;
+  --sidebar-primary-foreground: #faf7f1;
+  --sidebar-accent: #ece6da;
+  --sidebar-accent-foreground: #1d1a16;
+  --sidebar-border: #dcd3c3;
+  --sidebar-ring: #1d1a16;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fond: #161929;
-    --surface: #1f2338;
-    --surface-2: #262b44;
-    --encre: #ece8df;
-    --secondaire: #a3a6bf;
-    --filet: #33395a;
-    --succes: #5cc08a;
-    --erreur: #f0705c;
-    --inactif: #5b6080;
-  }
+.dark {
+  --background: #161929;
+  --foreground: #ece8df;
+  --card: #1f2338;
+  --card-foreground: #ece8df;
+  --popover: #1f2338;
+  --popover-foreground: #ece8df;
+  --primary: #ece8df;
+  --primary-foreground: #161929;
+  --secondary: #262b44;
+  --secondary-foreground: #ece8df;
+  --muted: #262b44;
+  --muted-foreground: #a3a6bf;
+  --accent: #262b44;
+  --accent-foreground: #ece8df;
+  --destructive: #f0705c;
+  --border: #33395a;
+  --input: #33395a;
+  --ring: #ece8df;
+  --success: #5cc08a;
+  --signal: #e6e05a;
+  --signal-foreground: #1d1a16;
+  --inactive: #5b6080;
+  --chart-1: #ece8df;
+  --chart-2: #a3a6bf;
+  --chart-3: #5b6080;
+  --chart-4: #5cc08a;
+  --chart-5: #f0705c;
+  --sidebar: #1f2338;
+  --sidebar-foreground: #ece8df;
+  --sidebar-primary: #ece8df;
+  --sidebar-primary-foreground: #161929;
+  --sidebar-accent: #262b44;
+  --sidebar-accent-foreground: #ece8df;
+  --sidebar-border: #33395a;
+  --sidebar-ring: #ece8df;
 }
 
 @theme inline {
-  --color-fond: var(--fond);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-encre: var(--encre);
-  --color-secondaire: var(--secondaire);
-  --color-filet: var(--filet);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
-  --color-succes: var(--succes);
-  --color-erreur: var(--erreur);
-  --color-inactif: var(--inactif);
-  /* Couleurs fixes du thème Nuit, pour les zones toujours de nuit (bureau de la page de connexion). */
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-inactive: var(--inactive);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Zones toujours de nuit, quel que soit le thème (bureau de la page de connexion). */
   --color-nuit-fond: #161929;
   --color-nuit-encre: #ece8df;
   --color-nuit-secondaire: #a3a6bf;
+
+  /* Polices de DESIGN.md (chargées dans layout.tsx) */
   --font-sans: var(--font-schibsted);
+  --font-heading: var(--font-schibsted);
   --font-mono: var(--font-jetbrains);
+
+  /* Arrondis variés de DESIGN.md : 6 px petites vignettes, 10 px champs et boutons,
+     12 px éléments de liste, 16 px cartes et panneaux, pilule. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 16px;
+  --radius-3xl: 16px;
+  --radius-4xl: 9999px;
 }
 
-body {
-  background: var(--fond);
-  color: var(--encre);
-  font-family: var(--font-sans), sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
 }
 
-/* Focus clavier toujours visible (DESIGN.md, accessibilité). */
+/* Focus clavier toujours visible : contour encre (DESIGN.md, accessibilité). */
 :focus-visible {
-  outline: 2px solid var(--encre);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }

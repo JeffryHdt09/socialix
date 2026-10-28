@@ -59,10 +59,10 @@ export function SignUpForm({ googleEnabled, googleFailed }: Props) {
   return (
     <>
       <h1 className="text-[28px] font-bold tracking-tight">Créer un compte</h1>
-      <p className="mt-1 text-[15px] text-secondaire">Ton équipe d’agents se met au travail dès la première campagne.</p>
+      <p className="mt-1 text-[15px] text-muted-foreground">Ton équipe d’agents se met au travail dès la première campagne.</p>
 
       {googleFailed && (
-        <p role="alert" className="mt-6 text-[14px] font-medium text-erreur">
+        <p role="alert" className="mt-6 text-[14px] font-medium text-destructive">
           La connexion avec Google a échoué, réessaie.
         </p>
       )}
@@ -96,10 +96,10 @@ export function SignUpForm({ googleEnabled, googleFailed }: Props) {
         <PasswordField value={password} onChange={setPassword} autoComplete="new-password" showRules />
 
         {error && (
-          <p role="alert" className="text-[14px] font-medium text-erreur">
+          <p role="alert" className="text-[14px] font-medium text-destructive">
             {error}{" "}
             {emailTaken && (
-              <Link href="/sign-in" className="text-encre underline underline-offset-4">
+              <Link href="/sign-in" className="text-foreground underline underline-offset-4">
                 Se connecter
               </Link>
             )}
@@ -109,9 +109,9 @@ export function SignUpForm({ googleEnabled, googleFailed }: Props) {
         <SubmitButton pending={pending} label="Créer mon compte" pendingLabel="Création du compte…" />
       </form>
 
-      <p className="mt-6 text-[14px] text-secondaire">
+      <p className="mt-6 text-[14px] text-muted-foreground">
         Déjà un compte ?{" "}
-        <Link href="/sign-in" className="font-semibold text-encre underline underline-offset-4">
+        <Link href="/sign-in" className="font-semibold text-foreground underline underline-offset-4">
           Se connecter
         </Link>
       </p>

@@ -52,10 +52,10 @@ export function SignInForm({ googleEnabled, googleFailed }: Props) {
   return (
     <>
       <h1 className="text-[28px] font-bold tracking-tight">Connexion</h1>
-      <p className="mt-1 text-[15px] text-secondaire">Content de te revoir.</p>
+      <p className="mt-1 text-[15px] text-muted-foreground">Content de te revoir.</p>
 
       {googleFailed && (
-        <p role="alert" className="mt-6 text-[14px] font-medium text-erreur">
+        <p role="alert" className="mt-6 text-[14px] font-medium text-destructive">
           La connexion avec Google a échoué, réessaie.
         </p>
       )}
@@ -80,7 +80,7 @@ export function SignInForm({ googleEnabled, googleFailed }: Props) {
         <PasswordField value={password} onChange={setPassword} autoComplete="current-password" />
 
         {error && (
-          <p role="alert" className="text-[14px] font-medium text-erreur">
+          <p role="alert" className="text-[14px] font-medium text-destructive">
             {error}
           </p>
         )}
@@ -88,9 +88,9 @@ export function SignInForm({ googleEnabled, googleFailed }: Props) {
         <SubmitButton pending={pending} label="Se connecter" pendingLabel="Connexion…" />
       </form>
 
-      <p className="mt-6 text-[14px] text-secondaire">
+      <p className="mt-6 text-[14px] text-muted-foreground">
         Pas encore de compte ?{" "}
-        <Link href="/sign-up" className="font-semibold text-encre underline underline-offset-4">
+        <Link href="/sign-up" className="font-semibold text-foreground underline underline-offset-4">
           Créer un compte
         </Link>
       </p>

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Schibsted_Grotesk } from "next/font/google";
+
+import { ThemeProvider } from "@/components/theme-provider";
+
 import "./globals.css";
 
 // Polices de docs/DESIGN.md. next/font les télécharge au build et les sert depuis notre site.
@@ -20,8 +23,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${schibsted.variable} ${jetbrains.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    // suppressHydrationWarning : next-themes ajoute la classe « dark » avant que React démarre,
+    // ce qui différerait du HTML du serveur. L'avertissement ne vaut que pour cet élément.
+    <html lang="fr" suppressHydrationWarning className={`${schibsted.variable} ${jetbrains.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

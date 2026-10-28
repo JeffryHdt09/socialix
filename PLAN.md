@@ -194,6 +194,10 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - **« Mot de passe oublié »** : à ajouter quand un service d’envoi d’e-mails existera (chapitre 18 ou 19). Better Auth sait le faire, il lui faut une fonction `sendResetPassword`. Même chose pour la vérification de l’e-mail.
 - **Google OAuth en production** : ajouter l’adresse du site dans les origines autorisées et l’URI de rappel `https://…/api/auth/callback/google` (chapitre 18). Application en mode « test » : seuls les utilisateurs tests peuvent se connecter ; passer en production avant d’ouvrir au public.
 
+- **shadcn/ui : le code est à nous.** `npx shadcn add <composant>` copie le composant dans `src/components/ui/`, avec les réglages par défaut de shadcn (32 px, arrondi 12 px, anneau de focus pâle, noms de couleurs neutres). Il faut ensuite l'adapter à `docs/DESIGN.md` (voir « Implémentation » dans ce fichier). Les mises à jour de shadcn n'écrasent rien : on recopie à la main ce qui nous intéresse. Le paquet `shadcn` lui-même (la CLI, qui fournit aussi `shadcn/tailwind.css`) reste en `devDependencies` : il ne sert qu'à la compilation, et en production il apporterait trois alertes `npm audit` de gravité faible (`deepmerge`).
+- **Paquet `cn`** : la CLI de shadcn 4.x l'utilise à la place de `clsx` + `tailwind-merge` (même auteur, MIT, aucune dépendance). Vérifié au chapitre 4 ; on le garde, car chaque composant ajouté l'importe.
+- **`next-themes` 0.4.6** : dernière publication en mars 2025, mais très utilisé et compatible React 19. Si un jour il pose problème, le remplacer par un petit script maison (classe `dark` + `localStorage`).
+
 ## 9. Avancement
 
 - [x] Squelette Next.js 16.4.3 généré dans `socialix` (TypeScript, Tailwind v4, ESLint, `src/`, App Router)
@@ -207,6 +211,7 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - [x] **Chapitre 1** : Hello world, `CLAUDE.md`, `.claude/agents/quick-helper.md`, `.gitignore` (fichiers tiers exclus), lint + build OK, premier commit `f492b9a`
 - [x] **Chapitre 2** : dépôt public GitHub, CodeRabbit, première pull request fusionnée (n° 1)
 - [x] **Chapitre 3** : Supabase (PostgreSQL 17) + Drizzle + Better Auth : migrations `0000_auth` et `0001_enable-rls`, pages `/sign-in` et `/sign-up` (règles de mot de passe CNIL), connexion Google, `/dashboard` protégé (proxy + `verifySession`)
-- [ ] Phase 1 : [ ] 4 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
+- [x] **Chapitre 4** : shadcn/ui (base Radix) avec la charte de `docs/DESIGN.md` : variables Jour/Nuit, composants `Button`, `Input`, `Label`, `DropdownMenu` adaptés (44 px, arrondi 10 px, focus encre), bouton Jour/Nuit (`next-themes`, classe `dark`)
+- [ ] Phase 1 : [ ] 5 · [ ] 5 · [ ] 6 · [ ] 7 · [ ] 8 · [ ] 9 · [ ] 10 · [ ] 11 · [ ] 12 · [ ] 13 · [ ] 14 · [ ] 15 · [ ] 16 · [ ] 17 (option)
 - [ ] Phase 2 : [ ] 18 · [ ] 19 · [ ] 20
 - [ ] Phase 3 : [ ] 21 · [ ] 22 · [ ] 23 (option)
