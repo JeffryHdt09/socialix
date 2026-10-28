@@ -174,6 +174,19 @@ export const agentTasks = pgTable(
     status: taskStatusEnum("status").notNull().default("pending"),
     // Ce que l'agent a produit (chapitres 11 et 12) ; vide tant que la tâche n'est pas faite.
     output: jsonb("output"),
+    // --- Exécution (chapitre 11) ---
+    // Combien de fois on a lancé l'agent pour cette tâche (le plafond évite une boucle d'échecs qui coûterait cher).
+    attempts: integer("attempts").notNull().default(0),
+    // Pourquoi la dernière tentative a échoué, en TEXTE COURT sans donnée de la personne : « quota », « indisponible »…
+    lastError: text("last_error"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    // Pas avant cette date (reprise après un quota épuisé, ou prochaine répétition). Vide = dès que possible.
+    nextRunAt: timestamp("next_run_at", { withTimezone: true }),
+    // Tâche répétée : toutes les N minutes, jusqu'à une date (facultative) ; `runCount` compte les exécutions réussies.
+    repeatEveryMinutes: integer("repeat_every_minutes"),
+    repeatUntil: timestamp("repeat_until", { withTimezone: true }),
+    runCount: integer("run_count").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
@@ -183,6 +196,10 @@ export const agentTasks = pgTable(
   (table) => [
     uniqueIndex("agent_tasks_plan_position_idx").on(table.planId, table.position),
     index("agent_tasks_plan_status_idx").on(table.planId, table.status),
+    // Le balayage régulier cherche les tâches prêtes (en attente, date atteinte) : cet index lui évite de tout parcourir.
+    index("agent_tasks_status_next_run_idx").on(table.status, table.nextRunAt),
+    check("agent_tasks_attempts_nonnegative", sql`${table.attempts} >= 0 and ${table.runCount} >= 0`),
+    check("agent_tasks_repeat_positive", sql`${table.repeatEveryMinutes} is null or ${table.repeatEveryMinutes} >= 1`),
     check("agent_tasks_position_positive", sql`${table.position} >= 1`),
     check("agent_tasks_agent_length", sql`char_length(btrim(${table.agent})) between 1 and 40`),
     check("agent_tasks_title_length", sql`char_length(btrim(${table.title})) between 1 and 120`),

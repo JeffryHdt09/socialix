@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { AgentChat } from "@/components/agents/agent-chat";
+import { usePlanPolling } from "@/components/agents/use-plan-polling";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import type { Agent } from "@/lib/agents";
 import type { ChatMessage } from "@/lib/chat-types";
@@ -57,5 +58,6 @@ export function AgentChatSheet({ agent, projectId, initialMessages, initialPlans
 function SheetChat({ agent, projectId, initialMessages, initialPlans }: { agent: Agent; projectId: string; initialMessages: ChatMessage[]; initialPlans: PlanView[] }) {
   const [plans, setPlans] = useState(initialPlans);
   const upsert = (plan: PlanView) => setPlans((all) => (all.some((p) => p.id === plan.id) ? all.map((p) => (p.id === plan.id ? plan : p)) : [plan, ...all]));
+  usePlanPolling(projectId, plans, setPlans);
   return <AgentChat agent={agent} projectId={projectId} initialMessages={initialMessages} plans={plans} onPlanChange={upsert} className="mt-8 min-h-0 flex-1" />;
 }

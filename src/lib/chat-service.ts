@@ -7,6 +7,7 @@ import { projects, messages } from "@/db/schema";
 import { findAgent } from "@/lib/agents";
 import { askAgent, ChatError, type ChatTurn, MAX_HISTORY, type ModelOptions } from "@/lib/chat";
 import { type ChatMessage, MAX_MESSAGE_LENGTH, type SendResult } from "@/lib/chat-types";
+import { sendPlanCreated } from "@/inngest/client";
 import { MasterPlanError, runMaster } from "@/lib/master";
 import { getOwnedProject } from "@/lib/ownership";
 import type { PlanDraft, ValidPlan } from "@/lib/plan";
@@ -86,6 +87,15 @@ export async function sendMessageAs(userId: string, projectId: string, agentId: 
       const [a] = await tx.insert(messages).values({ projectId, agent: agent.id, role: "assistant", content: reply.text, model: reply.model, planId, createdAt: new Date() }).returning();
       return [u, a];
     });
+    // Le plan est enregistré : on lance son exécution. Si Inngest ne répond pas (serveur de dev éteint, panne), le plan reste
+    // enregistré et le balayage régulier lancera ses tâches dès que le service revient : la réponse du Maître n'est pas perdue.
+    if (agentRow.planId) {
+      try {
+        await (options.onPlanCreated ?? sendPlanCreated)(agentRow.planId);
+      } catch (error) {
+        console.error("Plan : le lancement de l'exécution a échoué", error instanceof Error ? error.name : "?");
+      }
+    }
     // Le plan complet repart avec la réponse : l'interface affiche sa carte tout de suite, sans second aller-retour
     const [createdPlan] = agentRow.planId ? await readPlans(userId, projectId, { onlyPlanId: agentRow.planId }) : [];
     return { ok: true, messages: [toChatMessage(userRow), toChatMessage(agentRow)], plan: createdPlan };

@@ -4,7 +4,7 @@ import { APICallError, type LanguageModel, RetryError, ToolLoopAgent } from "ai"
 
 import { instructionsFor } from "@/lib/agent-instructions";
 import type { AgentId } from "@/lib/agents";
-import { CHAT_MODELS, getModel } from "@/lib/models";
+import { CHAT_MODELS, getModel, providerOf } from "@/lib/models";
 
 // Combien de messages de la conversation on renvoie au modèle (les plus récents) : au-delà, la requête grossit pour rien
 // et consomme le quota gratuit.
@@ -15,7 +15,16 @@ export type ChatTurn = { role: "user" | "assistant"; content: string };
 // Réglages d'un appel : la liste de modèles et la façon d'en fabriquer un. Les deux ont une valeur par défaut ; les tests
 // les remplacent (liste inventée, faux modèle) pour vérifier le comportement sans appeler Gemini ni épuiser le quota.
 // `teams` : les équipes activées du projet. Elles décident de la liste des agents annoncée dans les consignes.
-export type ModelOptions = { models?: readonly string[]; modelFactory?: (name: string) => LanguageModel; teams?: readonly string[] };
+// `extraInstructions` : consignes ajoutées après celles du rôle (l'exécution d'une tâche n'est pas une conversation).
+// `onPlanCreated` : appelée après l'enregistrement d'un plan, pour lancer son exécution (par défaut : événement Inngest ;
+// les tests la remplacent par une fonction vide).
+export type ModelOptions = {
+  models?: readonly string[];
+  modelFactory?: (name: string) => LanguageModel;
+  teams?: readonly string[];
+  extraInstructions?: string;
+  onPlanCreated?: (planId: string) => Promise<void>;
+};
 
 // Pourquoi aucun modèle n'a répondu : « quota » (limite gratuite atteinte, réessayer plus tard) ou « unavailable » (panne,
 // clé refusée, modèles retirés…). On ne transmet jamais le texte de l'erreur d'origine : il peut contenir des détails internes.
@@ -47,7 +56,12 @@ export function canTryNextModel(error: unknown): boolean {
 // change de modèle.
 export async function withModelFallback<T>(models: readonly string[], run: (modelName: string) => Promise<T | null>): Promise<{ value: T; model: string }> {
   let sawQuota = false;
+  let sawRefusal = false;
+  // Fournisseurs dont la clé ou la requête a été refusée : leurs autres modèles feraient pareil, mais un AUTRE fournisseur
+  // (OpenRouter après Gemini) a sa propre clé et peut très bien répondre.
+  const refused = new Set<string>();
   for (const name of models) {
+    if (refused.has(providerOf(name))) continue;
     try {
       const value = await run(name);
       if (value !== null) return { value, model: name };
@@ -56,10 +70,14 @@ export async function withModelFallback<T>(models: readonly string[], run: (mode
       if (status === 429) sawQuota = true;
       // Journal serveur : le nom du modèle et le statut, jamais l'en-tête de la requête (il contient la clé)
       console.error(`Chat : le modèle ${name} a échoué (${status ?? (error instanceof Error ? error.name : "?")})`);
-      if (!canTryNextModel(error)) throw new ChatError("unavailable");
+      if (!canTryNextModel(error)) {
+        refused.add(providerOf(name));
+        sawRefusal = true;
+      }
     }
   }
-  throw new ChatError(sawQuota ? "quota" : "unavailable");
+  // Quota seulement si rien d'autre ne l'explique : une clé refusée n'est pas « une pause », c'est une panne à corriger.
+  throw new ChatError(sawQuota && !sawRefusal ? "quota" : "unavailable");
 }
 
 // Pose la question à l'agent, avec les consignes de son rôle et l'historique, en passant au modèle suivant si besoin.
@@ -68,7 +86,7 @@ export async function askAgent(agent: AgentId, history: ChatTurn[], options: Mod
   const { value, model } = await withModelFallback(models, async (name) => {
     // ToolLoopAgent : la boucle d'agent de l'AI SDK. Sans outil, elle fait un seul tour ; au chapitre 12, on lui
     // donnera des outils (`tools`) sans rien changer d'autre.
-    const bot = new ToolLoopAgent({ id: agent, model: modelFactory(name), instructions: instructionsFor(agent, options.teams), maxRetries: 1 });
+    const bot = new ToolLoopAgent({ id: agent, model: modelFactory(name), instructions: [instructionsFor(agent, options.teams), options.extraInstructions].filter(Boolean).join("\n\n"), maxRetries: 1 });
     const result = await bot.generate({ messages: history.slice(-MAX_HISTORY), timeout: 30_000 });
     return result.text.trim() || null; // réponse vide (filtre de sécurité…) : on essaie le suivant
   });

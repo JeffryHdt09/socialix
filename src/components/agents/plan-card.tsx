@@ -6,8 +6,8 @@ import { cancelPlan } from "@/app/dashboard/chat-actions";
 import { StatusDot } from "@/components/agents/status-dot";
 import { Button } from "@/components/ui/button";
 import { AGENTS, type AgentStatus } from "@/lib/agents";
-import { formatPostDate } from "@/lib/dates";
-import { PLAN_STATUS_LABEL, type PlanView, summarizeTasks, TASK_STATUS_LABEL, type TaskStatus } from "@/lib/plan-types";
+import { formatClock, formatPostDate } from "@/lib/dates";
+import { PLAN_STATUS_LABEL, type PlanView, summarizeTasks, TASK_STATUS_LABEL, type TaskStatus, taskNote } from "@/lib/plan-types";
 import { cn } from "@/lib/utils";
 
 // La carte d'un plan du Maître (PAGES.md, fiche 5) : tâches numérotées, agent, état en toutes lettres, « après 02 »,
@@ -72,7 +72,8 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
         </div>
       </header>
       <p className={cn("mt-2 break-words", plan.status === "cancelled" && "text-muted-foreground")}>{plan.summary}</p>
-      <p className="mt-1 font-mono text-[12px] text-muted-foreground">{summarizeTasks(plan.tasks)}</p>
+      {/* aria-live : le bilan change pendant que les tâches s'exécutent ; un lecteur d'écran l'annonce sans interrompre */}
+      <p aria-live="polite" className="mt-1 font-mono text-[12px] text-muted-foreground">{summarizeTasks(plan.tasks)}</p>
 
       {tasks.length === 0 ? (
         <p className="mt-3 text-muted-foreground">Aucune tâche dans ce plan.</p>
@@ -92,12 +93,24 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
                     </span>
                     {t.dependsOn.length > 0 && <span className="font-mono text-[12px]">après {t.dependsOn.map(pad).join(", ")}</span>}
                   </p>
+                  {(() => {
+                    const note = taskNote(t, (iso) => formatClock(new Date(iso)));
+                    return note ? <p className="mt-0.5 text-[13px] text-muted-foreground">{note}</p> : null;
+                  })()}
                   <details className="mt-1 text-[13px]">
                     <summary className="inline-flex min-h-7 cursor-pointer items-center text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
                       Voir la consigne<span className="sr-only"> de la tâche {pad(t.position)}</span>
                     </summary>
                     <p className="mt-1 whitespace-pre-wrap break-words">{t.instruction}</p>
                   </details>
+                  {t.result !== null && (
+                    <details className="mt-1 text-[13px]">
+                      <summary className="inline-flex min-h-7 cursor-pointer items-center font-medium underline underline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
+                        Voir le résultat<span className="sr-only"> de la tâche {pad(t.position)}</span>
+                      </summary>
+                      <p className="mt-1 whitespace-pre-wrap break-words rounded-md border border-border bg-background p-3">{t.result}</p>
+                    </details>
+                  )}
                 </div>
               </div>
             </li>
@@ -105,8 +118,10 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
         </ol>
       )}
 
-      {plan.status === "active" && allPending && (
-        <p className="mt-3 text-[13px] text-muted-foreground">Les tâches sont enregistrées. Leur exécution automatique n’est pas encore branchée : elle arrive au chapitre 11 du plan.</p>
+      {plan.status === "active" && (
+        <p className="mt-3 text-[13px] text-muted-foreground">
+          {allPending ? "Les tâches vont démarrer toutes seules, en commençant par celles qui n’attendent personne." : "Les tâches s’exécutent toutes seules."} Cette carte se met à jour.
+        </p>
       )}
 
       {!onlyAgent && plan.status === "active" && (

@@ -12,6 +12,9 @@ export type TaskView = {
   instruction: string;
   status: TaskStatus;
   dependsOn: number[]; // numéros des tâches à terminer avant celle-ci (« après 02 »)
+  result: string | null; // ce que l'agent a produit (chapitre 11), null tant que la tâche n'est pas faite
+  lastError: string | null; // mot court : « quota », « indisponible », « limite », « dependance »… (jamais un texte d'erreur)
+  nextRunAt: string | null; // prochaine tentative ou prochaine répétition (ISO)
 };
 
 export type PlanView = {
@@ -36,6 +39,19 @@ export const PLAN_STATUS_LABEL: Record<PlanStatus, string> = {
   done: "Plan terminé",
   cancelled: "Plan annulé",
 };
+
+// La phrase qui explique l'état d'une tâche quand il n'est pas évident : pourquoi elle attend, pourquoi elle a échoué.
+// `clock` met une date en « 14:35 » (passée par l'appelant : ce fichier reste utilisable partout).
+export function taskNote(task: Pick<TaskView, "status" | "lastError" | "nextRunAt">, clock: (iso: string) => string): string | null {
+  const at = task.nextRunAt ? clock(task.nextRunAt) : null;
+  if (task.status === "pending" && task.lastError === "quota") return `Pause : la limite gratuite de l’IA est atteinte. Nouvel essai vers ${at ?? "plus tard"}.`;
+  if (task.status === "pending" && task.lastError === "limite") return `Limite de tâches du jour atteinte. Reprise vers ${at ?? "plus tard"}.`;
+  if (task.status === "pending" && task.lastError) return `L’agent n’a pas pu répondre. Nouvel essai vers ${at ?? "plus tard"}.`;
+  if (task.status === "pending" && at) return `Prévue vers ${at}.`;
+  if (task.status === "failed") return task.lastError === "agent absent du projet" ? "Échec : cet agent ne fait pas partie du projet." : "Échec : l’agent n’a pas pu répondre après plusieurs essais.";
+  if (task.status === "cancelled" && task.lastError === "dependance") return "Annulée : une tâche dont elle dépend a échoué.";
+  return null;
+}
 
 export type CancelResult = { ok: true; plan: PlanView } | { ok: false; error: string };
 
