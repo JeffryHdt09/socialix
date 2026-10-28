@@ -24,11 +24,16 @@ function readConfig() {
   // On reconnaît Supabase à son CHEMIN (/storage/v1/s3), pas à son domaine : l'instance hébergée
   // (https://<projet>.storage.supabase.co/storage/v1/s3) et celle lancée en local avec la CLI
   // (http://127.0.0.1:54321/storage/v1/s3) ont le même chemin, donc la même adresse publique.
-  const isSupabase = new URL(S3_ENDPOINT).pathname.replace(/\/$/, "").endsWith("/storage/v1/s3");
+  const endpoint = new URL(S3_ENDPOINT);
+  const endpointPath = endpoint.pathname.replace(/\/$/, "");
+  const isSupabase = endpointPath.endsWith("/storage/v1/s3");
   if (!configuredBase && !isSupabase) {
     throw new Error("Stockage non configuré : le point d'accès S3 ne ressemble pas à celui de Supabase (il ne se termine pas par /storage/v1/s3) : renseigner S3_PUBLIC_BASE_URL, l'adresse publique des fichiers (voir .env.example).");
   }
-  const publicBase = configuredBase || `${new URL(S3_ENDPOINT).origin}/storage/v1/object/public/${S3_BUCKET_LOGOS}`;
+  // Adresse déduite du CHEMIN COMPLET du point d'accès, pas seulement de son origine : un Supabase auto-hébergé
+  // derrière un proxy (https://hôte/préfixe/storage/v1/s3) garde son préfixe. On remplace seulement le « /s3 » final :
+  // …/storage/v1/s3  →  …/storage/v1/object/public/<bucket>.
+  const publicBase = configuredBase || `${endpoint.origin}${endpointPath.slice(0, -"/s3".length)}/object/public/${S3_BUCKET_LOGOS}`;
   return { S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, bucket: S3_BUCKET_LOGOS, publicBase };
 }
 

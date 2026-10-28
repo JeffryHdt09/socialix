@@ -14,7 +14,7 @@ export function IconPicker({
   onChange: (key: CampaignIconKey) => void;
 }) {
   return (
-    <div role="radiogroup" aria-label="Icône de la campagne" className="grid grid-cols-6 gap-2">
+    <div role="radiogroup" aria-label="Icône de la campagne" className="grid grid-cols-4 gap-2 sm:grid-cols-6">
       {campaignIconList.map(({ key, label, Icon }) => (
         <label
           key={key}
