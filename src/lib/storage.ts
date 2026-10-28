@@ -1,0 +1,77 @@
+import "server-only";
+
+import { randomUUID } from "node:crypto";
+
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
+import type { LogoFile } from "@/lib/logo-upload";
+
+// Stockage des logos. On parle le protocole S3, que Supabase Storage comprend, mais aussi Cloudflare R2,
+// MinIO ou AWS : changer de fournisseur = changer les variables S3_* de .env.local, pas ce fichier.
+// Le bucket est public en lecture ; seul ce module (donc le serveur) y écrit, avec les clés S3.
+
+function readConfig() {
+  const { S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_BUCKET_LOGOS, S3_PUBLIC_BASE_URL } = process.env;
+  if (!S3_ENDPOINT || !S3_REGION || !S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY || !S3_BUCKET_LOGOS) {
+    throw new Error("Stockage non configuré : renseigner les variables S3_* dans .env.local (voir .env.example).");
+  }
+  // Adresse publique d'un objet. Par défaut, celle de Supabase ; pour un autre fournisseur,
+  // la donner dans S3_PUBLIC_BASE_URL (sans « / » final).
+  const publicBase =
+    S3_PUBLIC_BASE_URL?.replace(/\/$/, "") ??
+    `${new URL(S3_ENDPOINT).origin}/storage/v1/object/public/${S3_BUCKET_LOGOS}`;
+  return { S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, bucket: S3_BUCKET_LOGOS, publicBase };
+}
+
+let client: S3Client | undefined;
+function s3() {
+  const c = readConfig();
+  client ??= new S3Client({
+    endpoint: c.S3_ENDPOINT,
+    region: c.S3_REGION,
+    credentials: { accessKeyId: c.S3_ACCESS_KEY_ID, secretAccessKey: c.S3_SECRET_ACCESS_KEY },
+    forcePathStyle: true, // l'adresse contient /bucket/clé, ce qu'attend Supabase
+  });
+  return client;
+}
+
+// Les identifiants d'utilisateur de Better Auth sont alphanumériques. On le revérifie avant de s'en
+// servir comme dossier : un identifiant contenant « / » ou « .. » pourrait sortir de son dossier.
+const SAFE_USER_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const KEY_PATTERN = /^([A-Za-z0-9_-]{1,64})\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/;
+
+// Envoie un logo déjà contrôlé (readLogoFile). Le nom est généré ici : on n'utilise JAMAIS celui du fichier
+// reçu, qui peut être piégé (« ../../x »). Le type vient de la signature du fichier, pas du navigateur.
+// Renvoie la clé de l'objet, à ranger dans campaigns.icon sous la forme « upload:<clé> ».
+export async function uploadLogo(userId: string, logo: LogoFile): Promise<string> {
+  if (!SAFE_USER_ID.test(userId)) throw new Error("Identifiant d'utilisateur inattendu.");
+  const key = `${userId}/${randomUUID()}.${logo.extension}`;
+  await s3().send(
+    new PutObjectCommand({
+      Bucket: readConfig().bucket,
+      Key: key,
+      Body: logo.bytes,
+      ContentType: logo.contentType,
+      // La clé est unique et ne change jamais : le navigateur peut garder l'image un an.
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+  );
+  return key;
+}
+
+// Supprime un logo, à condition qu'il appartienne bien à cet utilisateur : la clé doit avoir exactement
+// la forme générée par uploadLogo ET commencer par son propre dossier. Sans cela, une clé falsifiée
+// permettrait d'effacer le logo d'un autre.
+export async function deleteLogo(userId: string, key: string): Promise<void> {
+  const match = KEY_PATTERN.exec(key);
+  if (!SAFE_USER_ID.test(userId) || !match || match[1] !== userId) {
+    throw new Error("Ce logo n'appartient pas à cet utilisateur.");
+  }
+  await s3().send(new DeleteObjectCommand({ Bucket: readConfig().bucket, Key: key }));
+}
+
+// Adresse publique d'un logo, pour l'afficher.
+export function logoUrl(key: string): string {
+  if (!KEY_PATTERN.test(key)) throw new Error("Clé de logo invalide.");
+  return `${readConfig().publicBase}/${key}`;
+}

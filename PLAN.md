@@ -198,6 +198,8 @@ Idées notées pour plus tard, **à ne pas coder avant la fin du chapitre 15**. 
 - **Paquet `cn`** : la CLI de shadcn 4.x l'utilise à la place de `clsx` + `tailwind-merge` (même auteur, MIT, aucune dépendance). Vérifié au chapitre 4 ; on le garde, car chaque composant ajouté l'importe.
 - **`next-themes` 0.4.6** : dernière publication en mars 2025, mais très utilisé et compatible React 19. Si un jour il pose problème, le remplacer par un petit script maison (classe `dark` + `localStorage`).
 
+- **Téléversement de fichiers (chapitre 5)** : Next refuse par défaut un corps de Server Action de plus de 1 Mo ; `next.config.ts` le relève à 4 Mo (`experimental.serverActions.bodySizeLimit`). Le bucket Supabase n'impose ni taille ni type : tout est contrôlé côté serveur sur les **octets** reçus (`src/lib/logo-check.ts` : taille, signature PNG / JPEG / WebP). Le nom du fichier est généré par le serveur, jamais repris du navigateur. Un fichier supprimé du stockage peut rester servi par le CDN de Supabase pendant environ une minute s'il avait déjà été lu : sans conséquence pour des logos publics, mais à retenir pour des fichiers privés (chapitre 12 : utiliser des liens signés).
+
 ## 9. Avancement
 
 - [x] Squelette Next.js 16.4.3 généré dans `socialix` (TypeScript, Tailwind v4, ESLint, `src/`, App Router)

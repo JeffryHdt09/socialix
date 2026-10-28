@@ -30,10 +30,8 @@ export type CampaignIconKey = (typeof CAMPAIGN_ICON_KEYS)[number];
 export const OFFICES = ["wooden", "modern"] as const;
 export const AVAILABLE_OFFICES = ["wooden"] as const;
 
-// Logo téléversé : formats et taille acceptés. Le SVG est refusé exprès : il peut contenir du code.
-export const LOGO_MAX_BYTES = 3 * 1024 * 1024;
-export const LOGO_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
-export const LOGO_ERROR = "3 Mo maximum, PNG, JPG ou WebP.";
+// Le logo téléversé (3 Mo, PNG, JPG ou WebP) n'est pas décrit ici : il se contrôle sur les octets du
+// fichier, dans src/lib/logo-check.ts.
 
 export const campaignSchema = z.object({
   // trim() d'abord : « Café » et «  Café  » donnent le même nom, et un nom fait d'espaces est vide.
