@@ -134,7 +134,7 @@ const TOOLS = {
         execute: async ({ description }) => {
           if (!take("image", 2)) return { ok: false, raison: "limite d'images atteinte pour cette tâche" };
           const r = await generateAgentImage({ userId: ctx.userId, projectId: ctx.projectId, description });
-          if (!r.ok) return { ok: false, raison: r.reason === "quota" ? "limite de l'IA d'images atteinte" : r.reason === "invalide" ? "description invalide" : "génération indisponible" };
+          if (!r.ok) return { ok: false, raison: r.reason === "quota" ? "limite de l'IA d'images atteinte" : r.reason === "credits" ? "crédits insuffisants chez le fournisseur d'images" : r.reason === "invalide" ? "description invalide" : "génération indisponible" };
           ctx.onImage?.(r.key);
           return { ok: true, image: r.key };
         },
