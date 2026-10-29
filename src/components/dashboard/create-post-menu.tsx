@@ -9,8 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 // Bouton « Créer un post » de l'en-tête (PAGES.md, fiche 3) : un petit choix entre deux façons de créer.
 // - « Avec l'équipe IA » mène à la page Agents (le chat arrive aux chapitres 8 à 12) ;
-// - « À la main » ouvrira l'éditeur de post, qui n'existe qu'au chapitre 13 : on le montre grisé, avec la
-//   mention « bientôt », plutôt que de cacher l'option ou de la laisser mener nulle part.
+// - « À la main » ouvre l'éditeur de post (chapitre 13).
 export function CreatePostMenu({ variant = "default" }: { variant?: "default" | "outline" }) {
   const { projectId } = useParams<{ projectId: string }>();
 
@@ -29,10 +28,11 @@ export function CreatePostMenu({ variant = "default" }: { variant?: "default" | 
             Avec l’équipe IA
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>
-          <PenLine aria-hidden="true" />
-          À la main
-          <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[12px] font-medium text-muted-foreground">Bientôt</span>
+        <DropdownMenuItem asChild>
+          <Link href={`/dashboard/${projectId}/posts/new`}>
+            <PenLine aria-hidden="true" />
+            À la main
+          </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
