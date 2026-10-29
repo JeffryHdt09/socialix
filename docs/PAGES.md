@@ -100,6 +100,8 @@
 
 **Rôle :** donner des consignes à l'équipe et suivre son travail.
 
+> **Chapitre 12 :** « Voir le résultat » d'une tâche montre aussi les **images** que l'agent a produites (miniatures de 160 px qui s'ouvrent dans un nouvel onglet, avec un texte alternatif) ; les documents qu'il a enregistrés sont dans la page Documents (fiche 6 bis), les brouillons de post dans la page Posts (chapitre 13).
+
 **Contenu (maquette « Nuit ») :**
 - Colonne gauche : **l'équipe**. Maître, Recherche, Créateur, Planificateur, Analytique (Vidéaste en phase 3), chacun avec son rôle et son état en une ligne. L'agent ouvert est encadré d'accent.
 - Centre : l'agent ouvert, avec ses onglets **Discussion · Tâches · Historique · Réglages** (+ **Ordinateur** au ch. 17).
