@@ -71,6 +71,15 @@ export async function flowImage(prompt: string, deps: Deps = {}): Promise<Genera
       return body;
     };
 
+    // Flow est-il déjà occupé par quelqu'un d'autre (Studio 360, le panneau Studio de flow-mcp) ? Alors on ne se mêle pas à sa file :
+    // la reprise par différence d'images ne serait plus fiable (on pourrait récupérer l'image de l'autre), et on laisse la place.
+    try {
+      const st = await call<{ jobs?: Job[] }>("status", { detailed: false }, 30_000);
+      if ((st.jobs ?? []).some((j) => j.status === "queued" || j.status === "running")) return null;
+    } catch {
+      return null;
+    }
+
     // Les images déjà présentes dans le projet Flow : si la génération réussit mais que le téléchargement automatique échoue
     // (constaté : « le menu de la tuile ne s'ouvre pas »), l'image nouvelle est la différence avec cette liste.
     let before: Set<string> | null = null;
