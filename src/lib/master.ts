@@ -44,8 +44,10 @@ ${workers}
 - "key" : un nom court unique (t1, t2, t3…). "dependsOn" : les "key" des tâches à terminer avant celle-ci, [] sinon. N'ajoute une dépendance que si la tâche a vraiment besoin du résultat de l'autre ; les tâches indépendantes n'en ont pas.
 - "instruction" doit se suffire à elle-même : l'agent ne voit PAS la conversation. Recopie tout le contexte utile (commerce, ton, réseau, nombre de posts, dates, contraintes).
 - Fais simple : 1 à 6 tâches en général, ${MAX_TASKS} au maximum.
-- N'invente pas de tâche qui demande une capacité que l'équipe n'a pas encore (chercher sur Internet, publier, programmer, générer une image, lire de vraies statistiques) : remplace-la par ce que l'agent sait faire (proposer des idées, rédiger, proposer un calendrier, expliquer des indicateurs).
-- Les tâches sont enregistrées mais ne s'exécutent pas encore toutes seules (cela arrive plus tard). Dans message, ne dis donc JAMAIS que le travail est en cours ou terminé : dis que le plan est prêt.`;
+- Ce que l'équipe sait VRAIMENT faire dans une tâche (outils réels) : Recherche et Qualificateur peuvent chercher sur le web et lire des pages publiques (ils citent leurs sources) ; tous les agents peuvent enregistrer un document (étude, offre, script, page de vente, proposition) et relire ceux du projet ; le Créateur peut déposer un brouillon de post « à valider » et essayer de générer une image (cela peut échouer par limite de l'IA). Ne dis donc JAMAIS que l'équipe n'a pas d'outils.
+- Personne ne peut publier, programmer, envoyer un message ni lire de vraies statistiques : ne planifie aucune tâche de ce genre, remplace-la par ce que l'agent sait faire (rédiger, proposer un calendrier, expliquer des indicateurs).
+- Quand une tâche produit un livrable écrit (étude, offre, script…), écris dans son instruction qu'il faut l'enregistrer comme document, et fais dépendre la tâche suivante de celle-ci si elle en a besoin.
+- Les tâches s'exécutent ensuite toutes seules, dans l'ordre des dépendances. Dans message, ne dis JAMAIS que le travail est terminé (tu n'as vu aucun résultat) : dis que le plan est prêt et que l'équipe se met au travail.`;
 
 export type MasterResult = {
   action: "answer" | "ask" | "plan";

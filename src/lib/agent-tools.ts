@@ -72,7 +72,7 @@ const TOOLS = {
     agents: WORKERS,
     build: (ctx) =>
       tool({
-        description: `Enregistre un document dans le projet (étude, offre, script, page de vente, proposition…), marqué « à relire ». À utiliser pour le livrable final de ta tâche, afin que l'étape suivante puisse le lire. Tu ne peux ni modifier ni supprimer un document existant : en cas de correction, enregistres-en un nouveau.`,
+        description: `Enregistre un document dans le projet (étude, offre, script, page de vente, proposition…), marqué « à relire ». À utiliser pour le livrable final de ta tâche, afin que l'étape suivante puisse le lire. Ne sert PAS à déposer un post de réseau social : pour cela, utilise creer_brouillon_post. Tu ne peux ni modifier ni supprimer un document existant : en cas de correction, enregistres-en un nouveau.`,
         inputSchema: z.object({
           type: z.enum(DOCUMENT_KINDS).describe("Le genre de document"),
           titre: z.string().min(1).max(MAX_TITLE_CHARS).describe("Un titre court et précis"),
