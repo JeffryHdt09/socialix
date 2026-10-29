@@ -4,7 +4,7 @@ import { type Tool, type ToolSet, tool } from "ai";
 import { z } from "zod";
 
 import { AGENTS, type AgentId } from "@/lib/agents";
-import { DOCUMENT_KINDS, MAX_DOCUMENT_CHARS, MAX_TITLE_CHARS, readDocuments, saveDocument } from "@/lib/documents";
+import { DOCUMENT_KINDS, kindsFor, MAX_DOCUMENT_CHARS, MAX_TITLE_CHARS, readDocuments, saveDocument } from "@/lib/documents";
 import { generateAgentImage, MAX_IMAGE_PROMPT_CHARS } from "@/lib/image-tools";
 import { createPostDraft, MAX_CAPTION_CHARS, MAX_POST_TITLE_CHARS, PLATFORMS } from "@/lib/post-drafts";
 import { MAX_QUERY_CHARS, readPage, searchWeb } from "@/lib/web-tools";
@@ -74,13 +74,15 @@ const TOOLS = {
       tool({
         description: `Enregistre un document dans le projet (étude, offre, script, page de vente, proposition…), marqué « à relire ». À utiliser pour le livrable final de ta tâche, afin que l'étape suivante puisse le lire. Ne sert PAS à déposer un post de réseau social : pour cela, utilise creer_brouillon_post. Tu ne peux ni modifier ni supprimer un document existant : en cas de correction, enregistres-en un nouveau.`,
         inputSchema: z.object({
-          type: z.enum(DOCUMENT_KINDS).describe("Le genre de document"),
+          type: z.enum(kindsFor(ctx.agentId)).describe("Le genre de document"),
           titre: z.string().min(1).max(MAX_TITLE_CHARS).describe("Un titre court et précis"),
           contenu: z.string().min(1).max(MAX_DOCUMENT_CHARS).describe("Le texte complet du document"),
         }),
         execute: async ({ type, titre, contenu }) => {
           const r = await saveDocument({ projectId: ctx.projectId, taskId: ctx.taskId, author: ctx.agentId ?? "agent", kind: type, title: titre, content: contenu });
-          return r.ok ? { ok: true, id: r.id, statut: "a_relire" } : { ok: false, raison: r.reason === "trop_de_documents" ? "limite de documents atteinte pour cette tâche ou ce projet" : "document invalide (titre ou contenu vide ou trop long)" };
+          return r.ok
+            ? { ok: true, id: r.id, statut: "a_relire" }
+            : { ok: false, raison: r.reason === "trop_de_documents" ? "limite de documents atteinte pour cette tâche ou ce projet" : r.reason === "type_non_autorise" ? "ce type de document n'est pas permis pour toi ; un post de réseau social se dépose avec creer_brouillon_post" : "document invalide (titre ou contenu vide ou trop long)" };
         },
       }),
   },

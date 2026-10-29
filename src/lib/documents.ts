@@ -24,6 +24,25 @@ export const DOCUMENT_KIND_LABEL: Record<DocumentKind, string> = {
   autre: "Autre",
 };
 
+// Les types qu'un agent peut enregistrer : un agent n'a que ceux de son métier. Constaté lors d'un essai réel : un modèle gratuit
+// enregistrait un POST comme document « autre » au lieu d'appeler creer_brouillon_post. Sans type « autre » ni « étude » à sa
+// disposition, le Créateur n'a plus de case où ranger un post, et la seule bonne voie reste l'outil prévu pour cela.
+// Un agent absent de la liste (ou la personne elle-même) a droit à tous les types.
+const KINDS_BY_AGENT: Record<string, readonly DocumentKind[]> = {
+  recherche: ["etude", "autre"],
+  qualificateur: ["etude", "autre"],
+  analytique: ["etude", "autre"],
+  createur: ["offre", "script", "page_vente"],
+  propositions: ["proposition", "offre"],
+  planificateur: ["autre"],
+  suivi: ["autre"],
+};
+
+export function kindsFor(agentId: string | undefined): readonly [DocumentKind, ...DocumentKind[]] {
+  const kinds = agentId ? KINDS_BY_AGENT[agentId] : undefined;
+  return (kinds && kinds.length > 0 ? kinds : DOCUMENT_KINDS) as readonly [DocumentKind, ...DocumentKind[]];
+}
+
 export const MAX_DOCUMENT_CHARS = 20_000; // même plafond que la base (check documents_content_length)
 export const MAX_TITLE_CHARS = 120;
 // Plafonds contre une boucle de modèle qui enregistrerait sans fin : par tâche, et par projet.
@@ -33,12 +52,14 @@ export const MAX_DOCUMENTS_PER_PROJECT = 300;
 export const READ_CHARS_PER_DOCUMENT = 6_000;
 export const MAX_READ_DOCUMENTS = 5;
 
-export type SaveResult = { ok: true; id: string } | { ok: false; reason: "invalide" | "trop_de_documents" };
+export type SaveResult = { ok: true; id: string } | { ok: false; reason: "invalide" | "type_non_autorise" | "trop_de_documents" };
 
 export async function saveDocument(input: { projectId: string; taskId?: string; author: string; kind: DocumentKind; title: string; content: string }): Promise<SaveResult> {
   const title = input.title.trim();
   const content = input.content.trim();
   if (!title || title.length > MAX_TITLE_CHARS || !content || content.length > MAX_DOCUMENT_CHARS || !DOCUMENT_KINDS.includes(input.kind)) return { ok: false, reason: "invalide" };
+
+  if (!kindsFor(input.author).includes(input.kind)) return { ok: false, reason: "type_non_autorise" };
 
   // Les plafonds et l'insertion sous un VERROU propre au projet (dans une transaction) : sans lui, dix appels simultanés
   // comptaient tous « 0 document » avant d'insérer, et la limite ne servait à rien. Le verrou se libère à la fin de la transaction.
