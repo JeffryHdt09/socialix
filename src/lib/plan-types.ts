@@ -13,6 +13,7 @@ export type TaskView = {
   status: TaskStatus;
   dependsOn: number[]; // numéros des tâches à terminer avant celle-ci (« après 02 »)
   result: string | null; // ce que l'agent a produit (chapitre 11), null tant que la tâche n'est pas faite
+  images: string[]; // adresses des images produites par la tâche (chapitre 12), vide le plus souvent
   lastError: string | null; // mot court : « quota », « indisponible », « limite », « dependance »… (jamais un texte d'erreur)
   nextRunAt: string | null; // prochaine tentative ou prochaine répétition (ISO)
 };

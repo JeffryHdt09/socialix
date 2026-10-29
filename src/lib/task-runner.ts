@@ -21,6 +21,7 @@ export const STALE_RUNNING_MINUTES = 15; // une tâche « en cours » depuis plu
 export const MAX_TASK_RUNS_PER_DAY = 60; // par personne : sans plafond, une boucle d'erreurs viderait le quota ou la facture
 const DAILY_LIMIT_RETRY_MINUTES = 60;
 const TASK_TIMEOUT_MS = 120_000; // personne n'attend une tâche de fond : on laisse le temps aux gros modèles gratuits
+const MAX_TASK_IMAGES = 4; // images jointes au résultat d'une tâche
 const MAX_DEPENDENCY_CHARS = 6000; // la part d'un résultat précédent qu'on remet à l'agent suivant
 
 // Consignes ajoutées à celles du rôle : exécuter une tâche n'est pas bavarder (pas de question, un livrable complet).
@@ -179,16 +180,18 @@ export async function executeTask(taskId: string, options: ModelOptions = {}): P
     text: typeof (r.output as { text?: unknown } | null)?.text === "string" ? ((r.output as { text: string }).text) : null,
   }));
 
+  // Les images produites par les outils pendant cette exécution : jointes au résultat pour s'afficher dans le plan
+  const images: string[] = [];
   try {
     const reply = await askAgent(agent.id, [{ role: "user", content: buildTaskMessage(task, deps) }], {
       timeoutMs: TASK_TIMEOUT_MS,
       // Les outils de CET agent, pour CE projet : le propriétaire et le projet viennent de la base, pas du modèle
-      tools: toolsFor(agent.id, { userId: ctx.userId, projectId: ctx.projectId, taskId: task.id, agentId: agent.id }),
+      tools: toolsFor(agent.id, { userId: ctx.userId, projectId: ctx.projectId, taskId: task.id, agentId: agent.id, onImage: (key) => { if (images.length < MAX_TASK_IMAGES) images.push(key); } }),
       ...options,
       teams: ctx.teams,
       extraInstructions: TASK_RULES,
     });
-    return await succeed(task, { text: reply.text, model: reply.model, at: new Date().toISOString() });
+    return await succeed(task, { text: reply.text, model: reply.model, at: new Date().toISOString(), ...(images.length > 0 ? { images } : {}) });
   } catch (error) {
     if (error instanceof ChatError && error.reason === "quota") return await defer(task);
     // Journal : jamais error.message (il peut contenir du texte de la personne ou des détails de requête)
@@ -197,7 +200,7 @@ export async function executeTask(taskId: string, options: ModelOptions = {}): P
   }
 }
 
-async function succeed(task: Claimed, output: { text: string; model: string; at: string }): Promise<RunResult> {
+async function succeed(task: Claimed, output: { text: string; model: string; at: string; images?: string[] }): Promise<RunResult> {
   const repeatsAt = task.repeatEveryMinutes ? new Date(Date.now() + task.repeatEveryMinutes * 60_000) : null;
   const again = repeatsAt !== null && (task.repeatUntil === null || repeatsAt <= task.repeatUntil);
   // « status = running » dans la condition : si la personne a annulé le plan pendant que l'agent travaillait, la tâche est déjà
