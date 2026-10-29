@@ -21,7 +21,7 @@ export const QUOTA_RETRY_MINUTES = 15; // on réessaie une tâche arrêtée par 
 export const STALE_RUNNING_MINUTES = 15; // une tâche « en cours » depuis plus longtemps est considérée comme abandonnée
 export const MAX_TASK_RUNS_PER_DAY = 60; // par personne : sans plafond, une boucle d'erreurs viderait le quota ou la facture
 const DAILY_LIMIT_RETRY_MINUTES = 60;
-const TASK_TIMEOUT_MS = 120_000; // personne n'attend une tâche de fond : on laisse le temps aux gros modèles gratuits
+const TASK_TIMEOUT_MS = 360_000; // personne n'attend une tâche de fond : on laisse le temps aux gros modèles gratuits et à une image Flow (1 à 2 min)
 const MAX_TASK_IMAGES = 4; // images jointes au résultat d'une tâche
 const MAX_DEPENDENCY_CHARS = 6000; // la part d'un résultat précédent qu'on remet à l'agent suivant
 

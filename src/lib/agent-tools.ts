@@ -130,7 +130,7 @@ const TOOLS = {
     build: (ctx, take) =>
       tool({
         description: "Génère UNE image pour un post à partir d'une description (sujet, ambiance, couleurs, cadrage). L'image est enregistrée dans le projet et ne peut pas contenir de texte. Elle te rend une référence à passer à creer_brouillon_post. Peut échouer (limite de l'IA) : dans ce cas, décris le visuel dans le brouillon sans prétendre l'avoir créé.",
-        inputSchema: z.object({ description: z.string().min(10).max(MAX_IMAGE_PROMPT_CHARS).describe("Ce que l'image doit montrer, en une ou deux phrases") }),
+        inputSchema: z.object({ description: z.string().min(10).max(MAX_IMAGE_PROMPT_CHARS).describe("Ce que l'image doit montrer, en une ou deux phrases écrites EN ANGLAIS (les modèles d'image comprennent mieux) : sujet, décor, style, lumière, couleurs") }),
         execute: async ({ description }) => {
           if (!take("image", 2)) return { ok: false, raison: "limite d'images atteinte pour cette tâche" };
           const r = await generateAgentImage({ userId: ctx.userId, projectId: ctx.projectId, description });

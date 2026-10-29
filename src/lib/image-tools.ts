@@ -3,6 +3,7 @@ import "server-only";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 
+import { flowEnabled, flowImage } from "@/lib/flow-image";
 import { AGENT_IMAGE_TYPES, type AgentImageType, agentImageUrl, uploadAgentImage } from "@/lib/storage";
 
 // Génération d'image pour les agents (chapitre 12). Le modèle d'image et le stockage sont des paramètres : les tests les
@@ -17,7 +18,9 @@ export const MAX_IMAGE_PROMPT_CHARS = 600;
 // facturation, ils répondent 429. Sans crédits chez OpenRouter, l'API répond 402. L'outil le dit alors, sans rien inventer.
 export function imageModels(env: NodeJS.ProcessEnv = process.env): string[] {
   const configured = (env.IMAGE_MODELS ?? "").split(",").map((m) => m.trim()).filter(Boolean);
-  return configured.length > 0 ? configured : ["openrouter:openai/gpt-image-2", "google:gemini-2.5-flash-image"];
+  if (configured.length > 0) return configured;
+  // Flow (gratuit, local) passe en premier SI la personne l'a activé (FLOW_IMAGES=1), puis les API payantes ou limitées
+  return [...(flowEnabled(env) ? ["flow:nano-banana"] : []), "openrouter:openai/gpt-image-2", "google:gemini-2.5-flash-image"];
 }
 
 export type GeneratedImage = { bytes: Uint8Array; mediaType: string };
@@ -49,8 +52,10 @@ export async function openRouterImage(model: string, prompt: string, deps: { fet
 }
 
 // Aiguillage selon le fournisseur écrit dans le nom du modèle (sans préfixe : Google, comme avant).
-const defaultGenerator: ImageGenerator = (model, prompt) =>
-  model.startsWith("openrouter:") ? openRouterImage(model.slice("openrouter:".length), prompt) : geminiImage(model.replace(/^google:/, ""), prompt);
+const defaultGenerator: ImageGenerator = (model, prompt) => {
+  if (model.startsWith("flow:")) return flowEnabled() ? flowImage(prompt) : Promise.resolve(null); // jamais sans l'accord de la personne
+  return model.startsWith("openrouter:") ? openRouterImage(model.slice("openrouter:".length), prompt) : geminiImage(model.replace(/^google:/, ""), prompt);
+};
 
 // Reconnaît le vrai format d'après les premiers octets : le type annoncé par un fournisseur n'est pas cru.
 export function sniffImageType(b: Uint8Array): AgentImageType | null {
@@ -69,8 +74,9 @@ export async function generateAgentImage(
   const description = input.description.trim();
   if (!description || description.length > MAX_IMAGE_PROMPT_CHARS) return { ok: false, reason: "invalide" };
   const { models = imageModels(), generate = defaultGenerator, upload = uploadAgentImage, urlOf = agentImageUrl } = deps;
-  // Consigne de sécurité ajoutée par NOUS : pas de texte lisible (les modèles d'image écrivent mal) ni de marque existante
-  const prompt = `${description}\n\nImage sans aucun texte lisible, sans logo ni marque existante, sans visage de personne réelle identifiable.`;
+  // Consigne ajoutée par NOUS, en anglais (les modèles d'image la comprennent mieux) : pas de texte lisible (ils écrivent mal),
+  // pas de marque existante, pas de personne réelle identifiable
+  const prompt = `${description}\n\nThe image must contain no readable text or letters, no logos or existing brands, and no identifiable real person.`;
   let sawQuota = false;
   let sawCredits = false;
   for (const model of models) {
