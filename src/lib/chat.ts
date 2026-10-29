@@ -1,6 +1,6 @@
 import "server-only";
 
-import { APICallError, type LanguageModel, RetryError, ToolLoopAgent } from "ai";
+import { APICallError, isStepCount, type LanguageModel, RetryError, ToolLoopAgent, type ToolSet } from "ai";
 
 import { instructionsFor } from "@/lib/agent-instructions";
 import type { AgentId } from "@/lib/agents";
@@ -9,6 +9,9 @@ import { CHAT_MODELS, getModel, providerOf } from "@/lib/models";
 // Combien de messages de la conversation on renvoie au modèle (les plus récents) : au-delà, la requête grossit pour rien
 // et consomme le quota gratuit.
 export const MAX_HISTORY = 20;
+
+// Nombre maximal de tours d'une boucle d'agent avec outils (un tour = un appel au modèle, qui répond ou demande un outil).
+export const MAX_TOOL_STEPS = 6;
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
@@ -35,6 +38,8 @@ export type ModelOptions = {
   // Délai maximal d'une réponse, en millisecondes (30 s par défaut : quelqu'un attend). Une tâche de fond, que personne
   // n'attend, en demande davantage : les gros modèles gratuits d'OpenRouter mettent parfois plus de 30 s à répondre.
   timeoutMs?: number;
+  // Les outils donnés à l'agent pour cet appel (voir agent-tools.ts). Sans outil, l'agent répond en un seul tour.
+  tools?: ToolSet;
   onPlanCreated?: (planId: string) => Promise<void>;
 };
 
@@ -114,9 +119,16 @@ export async function withModelFallback<T>(models: readonly string[], run: (mode
 export async function askAgent(agent: AgentId, history: ChatTurn[], options: ModelOptions = {}): Promise<{ text: string; model: string }> {
   const { models = CHAT_MODELS, modelFactory = getModel } = options;
   const { value, model } = await withModelFallback(models, async (name) => {
-    // ToolLoopAgent : la boucle d'agent de l'AI SDK. Sans outil, elle fait un seul tour ; au chapitre 12, on lui
-    // donnera des outils (`tools`) sans rien changer d'autre.
-    const bot = new ToolLoopAgent({ id: agent, model: modelFactory(name), instructions: [instructionsFor(agent, options.teams), options.extraInstructions].filter(Boolean).join("\n\n"), maxRetries: 1 });
+    // ToolLoopAgent : la boucle d'agent de l'AI SDK. Sans outil, elle fait un seul tour. Avec des outils (chapitre 12), elle
+    // enchaîne « le modèle demande un outil → on l'exécute → le modèle lit le résultat » jusqu'à une réponse en texte, mais au
+    // plus MAX_TOOL_STEPS tours : sans plafond, un modèle qui boucle sur un outil consommerait tout le quota.
+    const bot = new ToolLoopAgent({
+      id: agent,
+      model: modelFactory(name),
+      instructions: [instructionsFor(agent, options.teams), options.extraInstructions].filter(Boolean).join("\n\n"),
+      maxRetries: 1,
+      ...(options.tools && Object.keys(options.tools).length > 0 ? { tools: options.tools, stopWhen: isStepCount(MAX_TOOL_STEPS) } : {}),
+    });
     const result = await bot.generate({ messages: windowHistory(history), timeout: options.timeoutMs ?? 30_000 });
     return result.text.trim() || null; // réponse vide (filtre de sécurité…) : on essaie le suivant
   });
