@@ -51,7 +51,7 @@ export async function findReadyTasks(options: { planId?: string; limit?: number 
   return rows.map((r) => r.id as string);
 }
 
-type Claimed = { id: string; planId: string; position: number; agent: string; title: string; instruction: string; attempts: number; repeatEveryMinutes: number | null; repeatUntil: Date | null };
+type Claimed = { id: string; planId: string; position: number; agent: string; title: string; instruction: string; attempts: number; claimToken: string; repeatEveryMinutes: number | null; repeatUntil: Date | null };
 
 // Réserve la tâche : « en attente » devient « en cours » en UNE instruction, avec la condition « prête » dans le même WHERE.
 // Deux appels simultanés pour la même tâche : la base n'en laisse passer qu'un, l'autre reçoit null. C'est CE contrôle (et
@@ -60,7 +60,7 @@ export async function claimTask(taskId: string): Promise<Claimed | null> {
   const rows = await db.execute(sql`
     update agent_tasks t set status = 'running', attempts = t.attempts + 1, started_at = now(), last_error = null, updated_at = now()
     where t.id = ${taskId} and ${READY}
-    returning t.id, t.plan_id, t.position, t.agent, t.title, t.instruction, t.attempts, t.repeat_every_minutes, t.repeat_until`);
+    returning t.id, t.plan_id, t.position, t.agent, t.title, t.instruction, t.attempts, extract(epoch from t.started_at)::text as claim_token, t.repeat_every_minutes, t.repeat_until`);
   const r = rows[0];
   if (!r) return null;
   return {
@@ -71,6 +71,7 @@ export async function claimTask(taskId: string): Promise<Claimed | null> {
     title: r.title as string,
     instruction: r.instruction as string,
     attempts: r.attempts as number,
+    claimToken: r.claim_token as string,
     repeatEveryMinutes: (r.repeat_every_minutes as number | null) ?? null,
     repeatUntil: r.repeat_until ? new Date(r.repeat_until as string | Date) : null,
   };
@@ -190,9 +191,10 @@ async function succeed(task: Claimed, output: { text: string; model: string; at:
   const repeatsAt = task.repeatEveryMinutes ? new Date(Date.now() + task.repeatEveryMinutes * 60_000) : null;
   const again = repeatsAt !== null && (task.repeatUntil === null || repeatsAt <= task.repeatUntil);
   // « status = running » dans la condition : si la personne a annulé le plan pendant que l'agent travaillait, la tâche est déjà
-  // « annulée » et ce résultat est écarté (on n'écrase jamais une annulation). « attempts = task.attempts » fait de même quand la
-  // tâche a été reprise par un autre exécuteur (balayage des tâches abandonnées) : claimTask a incrémenté attempts, donc un
-  // ancien exécuteur, resté trop longtemps au travail, ne retrouve plus sa valeur et n'écrase pas le résultat du nouveau.
+  // « annulée » et ce résultat est écarté (on n'écrase jamais une annulation). Le jeton de réservation (claimToken, l'heure
+  // exacte écrite par claimTask) fait de même quand la tâche a été reprise par un autre exécuteur (balayage des tâches
+  // abandonnées) : un ancien exécuteur, resté trop longtemps au travail, ne retrouve plus son jeton et n'écrase pas le résultat
+  // du nouveau. On n'utilise pas attempts : une tâche répétée le remet à 0, donc son numéro peut se répéter.
   const updated = await db
     .update(agentTasks)
     .set({
@@ -204,7 +206,7 @@ async function succeed(task: Claimed, output: { text: string; model: string; at:
       nextRunAt: again ? repeatsAt : null,
       attempts: again ? 0 : task.attempts,
     })
-    .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running"), eq(agentTasks.attempts, task.attempts)))
+    .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running"), sql`extract(epoch from ${agentTasks.startedAt})::text = ${task.claimToken}`))
     .returning({ id: agentTasks.id });
   if (updated.length === 0) return { outcome: "cancelled", readyTaskIds: [] };
   await settlePlan(task.planId);
@@ -216,7 +218,7 @@ async function defer(task: Claimed): Promise<RunResult> {
   await db.execute(sql`
     update agent_tasks set status = 'pending', attempts = greatest(attempts - 1, 0), last_error = 'quota',
       next_run_at = now() + make_interval(mins => ${QUOTA_RETRY_MINUTES}), updated_at = now()
-    where id = ${task.id} and status = 'running' and attempts = ${task.attempts}`);
+    where id = ${task.id} and status = 'running' and extract(epoch from started_at)::text = ${task.claimToken}`);
   return { outcome: "deferred", readyTaskIds: [] };
 }
 
@@ -225,7 +227,7 @@ async function retryOrFail(task: Claimed, reason: string): Promise<RunResult> {
   // Attente croissante entre deux essais : 2 minutes, puis 4
   await db.execute(sql`
     update agent_tasks set status = 'pending', last_error = ${reason}, next_run_at = now() + make_interval(mins => ${task.attempts * 2}), updated_at = now()
-    where id = ${task.id} and status = 'running' and attempts = ${task.attempts}`);
+    where id = ${task.id} and status = 'running' and extract(epoch from started_at)::text = ${task.claimToken}`);
   return { outcome: "retry", readyTaskIds: [] };
 }
 
@@ -233,7 +235,7 @@ async function fail(task: Claimed, reason: string): Promise<RunResult> {
   const updated = await db
     .update(agentTasks)
     .set({ status: "failed", lastError: reason, finishedAt: new Date() })
-    .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running"), eq(agentTasks.attempts, task.attempts)))
+    .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running"), sql`extract(epoch from ${agentTasks.startedAt})::text = ${task.claimToken}`))
     .returning({ id: agentTasks.id });
   if (updated.length === 0) return { outcome: "cancelled", readyTaskIds: [] };
   await cancelBlockedTasks(task.planId);
