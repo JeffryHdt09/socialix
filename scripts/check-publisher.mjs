@@ -110,6 +110,8 @@ try {
   check("état : date d'envoi et lien lus", r.ok && r.sentAt.toISOString() === "2026-12-01T09:31:00.000Z" && r.link === "https://bsky.app/x");
   r = await fake({ data: { post: { id: "p", status: "error", sentAt: null, externalLink: null, error: { message: "Instagram: media rejected" } } } }).publisher.state("p");
   check("état : message d'erreur du réseau conservé", r.ok && r.state === "error" && r.error === "Instagram: media rejected");
+  r = await fake({ json: { data: null, errors: [{ message: "Post not found for id: 6ae4e91810a950f1373c535b" }] } }).publisher.state("p");
+  check("état : « Post not found » de Buffer (post supprimé, constaté en vrai) -> « not_found »", !r.ok && r.reason === "not_found", JSON.stringify(r));
   r = await fake({ data: { post: null } }).publisher.state("p");
   check("état : post introuvable -> « not_found »", !r.ok && r.reason === "not_found");
 
@@ -132,6 +134,13 @@ try {
   check("texte : légende, ligne vide, hashtags", Rules.buildPostText("Bonjour", ["café", "lyon"]) === "Bonjour\n\n#café #lyon");
   check("texte : sans hashtag, la légende seule", Rules.buildPostText("  Bonjour  ", []) === "Bonjour");
   check("texte : hashtags seuls", Rules.buildPostText("", ["café"]) === "#café");
+  // Constaté au premier essai réel : l'agent met les hashtags dans le texte ET dans la liste
+  check("texte : un hashtag déjà dans la légende n'est pas ajouté une 2e fois (sans tenir compte des majuscules)", Rules.buildPostText("Bonjour #Café", ["café", "lyon"]) === "Bonjour #Café\n\n#lyon");
+  check("texte : tous déjà présents -> rien n'est ajouté", Rules.buildPostText("Vive #Lyon et #Café", ["lyon", "café"]) === "Vive #Lyon et #Café");
+  const realCaption = "Commerçants et indépendants : vos réseaux vous prennent du temps ?\n\nAvec Socialix, une équipe d’agents IA prépare vos posts. Vous gardez le contrôle : rien n'est publié sans votre validation ! Simple, clair et sans stress. ✨\n\n#Socialix #ReseauxSociaux #Independants #PetitsCommerces";
+  const realLen = Rules.buildPostText(realCaption, ["socialix", "reseauxsociaux", "independants", "petitscommerces"]).length;
+  check("le cas réel de l'essai : 283 signes, plus 340", realLen === realCaption.length && realLen < 300, String(realLen));
+  check("longueurs par réseau calculées par le programme", JSON.stringify(Rules.textLengths("abc", ["x"], ["bluesky", "x"])) === JSON.stringify([{ platform: "bluesky", length: 7, limit: 300 }, { platform: "x", length: 7, limit: 280 }]));
   check("Bluesky est un réseau reconnu, limité à 300 signes", Rules.isPlatform("bluesky") && Rules.CAPTION_LIMITS.bluesky === 300);
   const now = new Date("2026-11-01T10:00:00Z");
   const later = new Date("2026-11-02T10:00:00Z");

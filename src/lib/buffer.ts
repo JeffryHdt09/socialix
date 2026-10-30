@@ -70,6 +70,8 @@ export function createBufferPublisher(deps: Deps = {}): Publisher {
     if (!json.data) {
       const first = json.errors?.[0]?.message ?? "";
       console.error("Buffer : requête refusée", res.status, json.errors?.length ?? 0, "erreur(s)");
+      // « Post not found for id: … » : ce que Buffer répond pour un post supprimé (constaté au premier essai réel, après une annulation)
+      if (/not found/i.test(first)) return failure("not_found", first);
       return /unauthori|authenticat|token|api key/i.test(first) ? failure("auth") : failure("invalid", first);
     }
     return { ok: true, data: json.data };

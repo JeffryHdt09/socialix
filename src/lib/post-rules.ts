@@ -33,9 +33,22 @@ export function cleanHashtags(raw: readonly string[]): string[] {
 // non la légende seule, qui compte dans la limite d'un réseau (X : 280 signes hashtags compris).
 export function buildPostText(caption: string, hashtags: readonly string[]): string {
   const text = caption.trim();
-  const tags = hashtags.map((h) => `#${h}`).join(" ");
+  // Un hashtag déjà écrit dans la légende n'est pas ajouté une seconde fois : les agents (et les personnes) mettent souvent les
+  // hashtags dans le texte ET dans la liste (constaté au premier essai réel : 340 signes au lieu de 283). Sans tenir compte des majuscules.
+  const present = new Set((text.match(/#[\p{L}\p{N}_]+/gu) ?? []).map((h) => h.slice(1).toLowerCase()));
+  const tags = hashtags
+    .filter((h) => !present.has(h.toLowerCase()))
+    .map((h) => `#${h}`)
+    .join(" ");
   if (!tags) return text;
   return text ? `${text}\n\n${tags}` : tags;
+}
+
+// La longueur RÉELLE du texte envoyé, réseau par réseau, calculée par le programme. Un modèle ne sait pas compter les caractères de
+// façon fiable (au premier essai réel, le Créateur a annoncé 276 signes pour un texte qui en faisait 340, et le Maître l'a cru).
+export function textLengths(caption: string, hashtags: readonly string[], platforms: readonly Platform[]): { platform: Platform; length: number; limit: number }[] {
+  const length = buildPostText(caption, hashtags).length;
+  return platforms.map((platform) => ({ platform, length, limit: CAPTION_LIMITS[platform] }));
 }
 
 export type PostInput = { title: string; caption: string; hashtags: readonly string[]; platforms: readonly string[]; imageUrl: string | null; day: string; time: string };

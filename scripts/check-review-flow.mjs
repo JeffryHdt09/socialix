@@ -40,6 +40,7 @@ const sql = postgres(process.env.DATABASE_URL, { max: 2, prepare: false, onnotic
 const S = load(path.join(root, "src/lib/review-service.ts"));
 const Chat = load(path.join(root, "src/lib/chat.ts"));
 const Runner = load(path.join(root, "src/lib/task-runner.ts"));
+const Tools = load(path.join(root, "src/lib/agent-tools.ts"));
 
 let ok = 0;
 let ko = 0;
@@ -188,7 +189,32 @@ try {
   row = await planRow(planId);
   check("la revue qui suit termine le plan", res.outcome === "concluded" && row.status === "done" && row.report === "Bilan.");
 
-  // 11. Le balayage trouve les bons plans
+  // 11. L'outil du Créateur calcule la longueur lui-même (constaté au premier essai réel : un agent annonce une longueur fausse)
+  const draftTool = Tools.toolsFor("createur", { userId: uid, projectId, agentId: "createur" }).creer_brouillon_post;
+  const opts = { toolCallId: "t1", messages: [] };
+  const draftsBefore = Number((await sql`select count(*) as n from posts where project_id = ${projectId}`)[0].n);
+  let out = await draftTool.execute({ titre: "Trop long", legende: "a".repeat(290), hashtags: ["café", "lyon"], reseaux: ["bluesky"] }, opts);
+  check("outil du Créateur : brouillon trop long pour Bluesky refusé, avec le chiffre EXACT", out.ok === false && /Bluesky 303 caractères pour 300 autorisés/.test(out.raison), JSON.stringify(out));
+  check("…et rien n'est enregistré", Number((await sql`select count(*) as n from posts where project_id = ${projectId}`)[0].n) === draftsBefore);
+  out = await draftTool.execute({ titre: "Bon", legende: "Bonjour #Café", hashtags: ["café", "lyon"], reseaux: ["bluesky", "x"] }, opts);
+  check("outil du Créateur : brouillon accepté, il rend les VRAIES longueurs (hashtag en double non compté)", out.ok === true && JSON.stringify(out.longueurs) === JSON.stringify(["Bluesky : 20/300 caractères", "X : 20/280 caractères"]), JSON.stringify(out));
+
+  // 12. Les vérifications du programme arrivent au Maître lors de la relecture
+  ({ planId } = await plan([{ agent: "createur" }]));
+  await sql`insert into posts (project_id, title, caption, hashtags, platforms, status, created_by) values (${projectId}, 'Annonce', ${"b".repeat(320)}, ${["socialix"]}, ${["bluesky", "instagram"]}, 'to_review', 'agent')`;
+  f = fakeModel(complete("Prêt."));
+  await S.executeReview(planId, f.options);
+  const prompt = JSON.stringify(f.model.doGenerateCalls[0]?.prompt ?? "");
+  check("relecture : le Maître reçoit la longueur calculée et « TROP LONG »", prompt.includes("331 caractères sur 300 autorisés") && prompt.includes("TROP LONG"), prompt.slice(-600));
+  check("relecture : …et l'image manquante pour Instagram", prompt.includes("pas d'image, alors que Instagram en exige une"));
+  check("relecture : …et la consigne de ne citer aucun autre chiffre", prompt.includes("AUCUN chiffre"));
+  ({ planId } = await plan([{ agent: "createur" }]));
+  await sql`delete from posts where project_id = ${projectId} and created_by = 'agent'`;
+  f = fakeModel(complete("Prêt."));
+  await S.executeReview(planId, f.options);
+  check("relecture : un Créateur qui n'a déposé aucun brouillon est signalé au Maître", JSON.stringify(f.model.doGenerateCalls[0]?.prompt ?? "").includes("Aucun brouillon de post n'a été déposé"));
+
+  // 13. Le balayage trouve les bons plans
   const a = await plan([{}]); // à relire
   const b = await plan([{}, { status: "pending", dependsOn: [1] }]); // tâche ouverte
   const c = await plan([{}], { status: "cancelled" }); // annulé

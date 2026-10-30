@@ -88,6 +88,9 @@ const msg = R.buildReviewMessage({ request: "2 posts pour un café", summary: "P
 check("revue : le résultat piégé est écarté", msg.includes("résultat écarté") && !msg.includes("mot de passe"));
 check("revue : l'échec est signalé", msg.includes("ÉCHEC") && msg.includes("(pas de résultat)"));
 check("revue : la demande d'origine est présente", msg.includes("2 posts pour un café"));
+const withChecks = R.buildReviewMessage({ request: "a", summary: "b", tasks: [], round: 0, checks: ["Brouillon « X » pour Bluesky : 340 caractères sur 300 autorisés, hashtags compris : TROP LONG, à renvoyer au Créateur."] });
+check("revue : les vérifications du programme sont données au Maître comme des faits", withChecks.includes("Vérifications faites par le programme") && withChecks.includes("340 caractères sur 300"));
+check("revue : sans vérification, pas de section vide", !R.buildReviewMessage({ request: "a", summary: "b", tasks: [], round: 0, checks: [] }).includes("Vérifications faites par le programme"));
 check("revue : dernière revue signalée", R.buildReviewMessage({ request: "a", summary: "b", tasks: [], round: R.MAX_REVIEW_ROUNDS }).includes("dernière possible"));
 
 // --- état « le Maître relit » (affichage de la carte du plan)

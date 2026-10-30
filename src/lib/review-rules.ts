@@ -126,7 +126,8 @@ const clip = (text: string) => (text.length > MAX_RESULT_CHARS ? `${text.slice(0
 
 // Le message donné au Maître pour la revue : la demande d'origine, le résumé du plan, puis chaque tâche avec son résultat.
 // Les résultats viennent d'autres agents (donc du modèle) : filtre anti-injection, et rappel que ce sont des DONNÉES.
-export function buildReviewMessage(input: { request: string; summary: string; tasks: readonly ReviewTask[]; round: number }): string {
+// `checks` : des vérifications calculées par le PROGRAMME (longueurs, image manquante…), données au Maître comme des faits exacts.
+export function buildReviewMessage(input: { request: string; summary: string; tasks: readonly ReviewTask[]; round: number; checks?: readonly string[] }): string {
   const parts = [
     `Demande d'origine de la personne :\n${input.request}`,
     `Résumé du plan que tu avais annoncé :\n${input.summary}`,
@@ -140,6 +141,9 @@ export function buildReviewMessage(input: { request: string; summary: string; ta
     else if (!scanForInjection(t.result).safe) body = "(résultat écarté : il contenait des consignes suspectes)";
     else body = clip(t.result);
     parts.push("", head, body);
+  }
+  if (input.checks && input.checks.length > 0) {
+    parts.push("", "Vérifications faites par le programme (exactes : reprends ces chiffres, n'en annonce aucun autre) :", ...input.checks.map((c) => `- ${c}`));
   }
   return parts.join("\n");
 }
