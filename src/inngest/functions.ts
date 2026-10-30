@@ -2,10 +2,11 @@ import "server-only";
 
 import { z } from "zod";
 
-import { EVENTS, inngest, sendTasksReady } from "@/inngest/client";
+import { EVENTS, inngest, sendPlansReview, sendTasksReady } from "@/inngest/client";
+import { executeReview, findPlansToReview } from "@/lib/review-service";
 import { findReadyTasks, executeTask, recoverStaleTasks } from "@/lib/task-runner";
 
-// Les trois fonctions de fond (chapitre 11). Chacune ne fait que décider QUOI lancer ; le travail et toutes les règles
+// Les fonctions de fond (chapitre 11, plus la revue du Maître au chapitre 13b). Chacune ne fait que décider QUOI lancer ; le travail et toutes les règles
 // (jamais deux fois, annulation, reprises) sont dans src/lib/task-runner.ts.
 
 const idSchema = z.uuid();
@@ -31,11 +32,25 @@ export const executeAgentTask = inngest.createFunction(
     // reste « en cours » et le balayage la reprendra (recoverStaleTasks) plutôt que de la relancer à l'aveugle.
     const result = await step.run("execute", () => executeTask(taskId));
     await step.run("unblock-next", () => sendTasksReady(result.readyTaskIds));
+    // Dernière tâche du plan : le Maître doit maintenant relire le travail avant que le plan soit terminé.
+    await step.run("start-review", () => sendPlansReview(result.reviewPlanId ? [result.reviewPlanId] : []));
     return { outcome: result.outcome };
   },
 );
 
-// 3. Balayage toutes les 15 minutes : le filet de sécurité. Il rattrape ce qu'aucun événement n'a lancé (événement perdu,
+// 3. Un plan n'a plus rien d'ouvert : le Maître relit les résultats. Il conclut (rapport, plan « terminé ») ou renvoie des tâches
+// à leurs agents, que l'on relance aussitôt. concurrency : une seule revue à la fois (le quota des modèles est partagé).
+export const reviewPlan = inngest.createFunction(
+  { id: "review-plan", triggers: [{ event: EVENTS.planReview }], concurrency: { limit: 1 }, retries: 1 },
+  async ({ event, step }) => {
+    const planId = idSchema.parse(event.data.planId);
+    const result = await step.run("review", () => executeReview(planId));
+    await step.run("restart-redone-tasks", () => sendTasksReady(result.readyTaskIds));
+    return { outcome: result.outcome };
+  },
+);
+
+// 4. Balayage toutes les 15 minutes : le filet de sécurité. Il rattrape ce qu'aucun événement n'a lancé (événement perdu,
 // tâche remise à plus tard après un quota, tâche répétée dont l'heure est venue) et reprend les tâches abandonnées.
 export const sweepTasks = inngest.createFunction(
   { id: "sweep-tasks", triggers: [{ cron: "*/15 * * * *" }], retries: 0 },
@@ -43,8 +58,11 @@ export const sweepTasks = inngest.createFunction(
     const recovered = await step.run("recover-stale", () => recoverStaleTasks());
     const ready = await step.run("find-ready", () => findReadyTasks({ limit: 20 }));
     await step.run("send-ready", () => sendTasksReady(ready));
-    return { recovered, launched: ready.length };
+    // Les plans dont la revue s'est perdue ou a été remise à plus tard (modèle en quota) repartent ici.
+    const toReview = await step.run("find-plans-to-review", () => findPlansToReview());
+    await step.run("send-reviews", () => sendPlansReview(toReview));
+    return { recovered, launched: ready.length, reviews: toReview.length };
   },
 );
 
-export const functions = [onPlanCreated, executeAgentTask, sweepTasks];
+export const functions = [onPlanCreated, executeAgentTask, reviewPlan, sweepTasks];
