@@ -48,6 +48,9 @@ export async function readPlans(userId: string, projectId: string, options: { li
         title: t.title,
         instruction: t.instruction,
         status: t.status,
+        result: typeof (t.output as { text?: unknown } | null)?.text === "string" ? (t.output as { text: string }).text : null,
+        lastError: t.lastError,
+        nextRunAt: t.nextRunAt ? t.nextRunAt.toISOString() : null,
         dependsOn: links
           .filter((l) => l.taskId === t.id)
           .map((l) => positionOf.get(l.dependsOnTaskId)!)

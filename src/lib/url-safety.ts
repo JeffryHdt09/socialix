@@ -2,6 +2,10 @@
 // ou par une page, on vérifie qu'elle vise Internet et non notre réseau interne. Sans cela, un texte piégé peut pousser
 // l'agent à lire http://localhost, le réseau privé ou les métadonnées du fournisseur de cloud.
 //
+// REDIRECTIONS (à respecter en branchant l'outil web, chapitre 12) : une adresse publique peut répondre « 302 vers http://localhost ».
+// L'outil devra donc appeler fetch avec `redirect: "manual"` et repasser CHAQUE adresse de redirection dans checkUrlResolved
+// (5 sauts au plus), au lieu de laisser le client HTTP les suivre en aveugle. Remarque de CodeRabbit sur la PR n°9.
+//
 // Deux étapes, parce que le nom ne suffit pas : `checkUrl` (pure) juge l'adresse écrite ; `checkUrlResolved` juge aussi
 // les adresses IP vers lesquelles le nom mène (un nom public peut pointer vers 127.0.0.1).
 
@@ -12,14 +16,14 @@ export type UrlCheck = { ok: true; url: URL } | { ok: false; reason: string };
 export function isPrivateIPv4(ip: string): boolean {
   const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
   if (!m) return false;
-  const [a, b] = [Number(m[1]), Number(m[2])];
+  const [a, b, c] = [Number(m[1]), Number(m[2]), Number(m[3])];
   return (
     a === 0 || a === 10 || a === 127 || a >= 224 ||
     (a === 100 && b >= 64 && b <= 127) ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
     (a === 192 && b === 168) ||
-    (a === 192 && b === 0) ||
+    (a === 192 && b === 0 && c === 0) || // 192.0.0.0/24 (protocoles IETF) ; le reste de 192.0.x.x est public
     (a === 198 && (b === 18 || b === 19))
   );
 }
@@ -35,7 +39,7 @@ export function isPrivateIPv6(ip: string): boolean {
     const [hi, lo] = [parseInt(hex[1], 16), parseInt(hex[2], 16)];
     return isPrivateIPv4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
   }
-  return /^f[cd]/.test(v) || /^fe[89ab]/.test(v) || v.startsWith("ff"); // privée (fc00::/7), lien local, multicast
+  return /^f[cd]/.test(v) || /^fe[89abcdef]/.test(v) || v.startsWith("ff"); // privée (fc00::/7), lien local, multicast
 }
 
 export function checkUrl(raw: string): UrlCheck {

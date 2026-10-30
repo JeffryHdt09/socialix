@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { AgentChat } from "@/components/agents/agent-chat";
 import { PlanCard } from "@/components/agents/plan-card";
+import { usePlanPolling } from "@/components/agents/use-plan-polling";
 import type { Agent } from "@/lib/agents";
 import type { ChatMessage } from "@/lib/chat-types";
 import type { PlanView } from "@/lib/plan-types";
@@ -33,6 +34,7 @@ export function AgentTabs({ agent, projectId, initialMessages, initialPlans }: P
   // plans, donc annuler dans l'un met l'autre à jour sans rechargement.
   const [plans, setPlans] = useState(initialPlans);
   const upsert = (plan: PlanView) => setPlans((all) => (all.some((p) => p.id === plan.id) ? all.map((p) => (p.id === plan.id ? plan : p)) : [plan, ...all]));
+  usePlanPolling(projectId, plans, setPlans);
   const isMaster = agent.id === "maitre";
   // Le Maître voit tous les plans ; un agent de travail, seulement les plans où une tâche lui est confiée
   const visible = isMaster ? plans : plans.filter((p) => p.tasks.some((t) => t.agent === agent.id));
