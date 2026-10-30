@@ -20,11 +20,11 @@ import { cn } from "@/lib/utils";
 // en bas. Les mêmes règles (post-rules.ts) servent ici pour répondre tout de suite et sur le serveur pour décider : le navigateur peut mentir.
 export type EditorInitial = { id: string | null; title: string; caption: string; hashtags: string[]; platforms: string[]; imageUrl: string | null; day: string; time: string; published: boolean };
 
-type Props = { projectId: string; avatar: PreviewAvatar; initial: EditorInitial; teamImages: string[]; retouchConfigured: boolean; focusDate: boolean };
+type Props = { projectId: string; avatar: PreviewAvatar; initial: EditorInitial; teamImages: string[]; retouchConfigured: boolean; linkedPlatforms: readonly string[]; focusDate: boolean };
 
 const STATUS_TAB = { draft: "brouillons", scheduled: "programmes" } as const;
 
-export function PostEditor({ projectId, avatar, initial, teamImages, retouchConfigured, focusDate }: Props) {
+export function PostEditor({ projectId, avatar, initial, teamImages, retouchConfigured, linkedPlatforms, focusDate }: Props) {
   const uid = useId();
   const router = useRouter();
   const [title, setTitle] = useState(initial.title);
@@ -102,6 +102,16 @@ export function PostEditor({ projectId, avatar, initial, teamImages, retouchConf
       setErrors(local.errors);
       summaryRef.current?.focus();
       return;
+    }
+    // Programmer exige un compte lié pour CHAQUE réseau choisi : on le dit tout de suite, sans aller-retour. (Le serveur le
+    // revérifie : un brouillon, lui, peut viser un réseau sans compte.)
+    if (mode === "schedule") {
+      const missing = local.data.platforms.filter((p) => !linkedPlatforms.includes(p));
+      if (missing.length > 0) {
+        setErrors({ platforms: `Aucun compte lié pour ${missing.map(networkName).join(", ")}. Ajoute-le dans « Comptes », ou retire ce réseau pour programmer.` });
+        summaryRef.current?.focus();
+        return;
+      }
     }
     setErrors({});
     setSaving(mode);
@@ -238,11 +248,18 @@ export function PostEditor({ projectId, avatar, initial, teamImages, retouchConf
                   <input type="checkbox" checked={platforms.includes(p)} disabled={video && !platforms.includes(p)} onChange={() => togglePlatform(p)} className="size-5 accent-[var(--primary)]" />
                   {networkName(p)}
                   {video && <span className="text-[12px]">(vidéo : phase 3)</span>}
+                  {!video && !linkedPlatforms.includes(p) && <span className="text-[12px] text-muted-foreground">(aucun compte lié)</span>}
                 </label>
               );
             })}
           </div>
-          <p className="text-[13px] text-muted-foreground">Seuls les comptes connectés seront proposés au chapitre 14 ; pour l’instant, tous les réseaux le sont.</p>
+          <p className="text-[13px] text-muted-foreground">
+            Tu peux choisir un réseau sans compte lié pour un brouillon, mais le post ne pourra pas être programmé tant que ce compte n’est pas lié dans{" "}
+            <Link href={`/dashboard/${projectId}/accounts`} className="underline underline-offset-2 hover:text-foreground">
+              Comptes
+            </Link>
+            .
+          </p>
           {err("platforms")}
         </fieldset>
 

@@ -7,6 +7,7 @@ import { AGENTS, type AgentId } from "@/lib/agents";
 import { DOCUMENT_KINDS, kindsFor, MAX_DOCUMENT_CHARS, MAX_TITLE_CHARS, readDocuments, saveDocument } from "@/lib/documents";
 import { generateAgentImage, MAX_IMAGE_PROMPT_CHARS } from "@/lib/image-tools";
 import { createPostDraft, MAX_CAPTION_CHARS, MAX_POST_TITLE_CHARS, PLATFORMS } from "@/lib/post-drafts";
+import { cleanHashtags, networkName, textLengths } from "@/lib/post-rules";
 import { MAX_QUERY_CHARS, readPage, searchWeb } from "@/lib/web-tools";
 
 // Les OUTILS des agents (PLAN.md, chapitre 12). Un agent sans outil ne peut que discuter ; un outil lui donne un pouvoir précis.
@@ -154,9 +155,15 @@ const TOOLS = {
           image: z.string().max(300).optional().describe("La référence rendue par generer_image, si tu en as une"),
         }),
         execute: async ({ titre, legende, hashtags, reseaux, image }) => {
+          // La longueur est calculée ICI, par le programme, hashtags compris : un brouillon trop long pour un réseau est refusé avec le
+          // chiffre exact, pour que l'agent le raccourcisse lui-même (au lieu d'annoncer une longueur qu'il n'a pas comptée).
+          const lengths = textLengths(legende, cleanHashtags(hashtags), reseaux);
+          const over = lengths.filter((l) => l.length > l.limit);
+          if (over.length > 0) return { ok: false, raison: `texte trop long, hashtags compris : ${over.map((l) => `${networkName(l.platform)} ${l.length} caractères pour ${l.limit} autorisés`).join(" ; ")}. Raccourcis la légende ou retire des hashtags, puis redépose le brouillon.` };
           if (!take("brouillon", 5)) return { ok: false, raison: "limite de brouillons atteinte pour cette tâche" };
           const r = await createPostDraft({ userId: ctx.userId, projectId: ctx.projectId, title: titre, caption: legende, hashtags, platforms: reseaux, imageKey: image });
-          return r.ok ? { ok: true, id: r.id, statut: "a_valider" } : { ok: false, raison: r.reason === "image_inconnue" ? "image inconnue : utilise la référence rendue par generer_image" : "brouillon invalide (titre, légende ou réseau)" };
+          // Les longueurs rendues sont celles du programme : ce sont les SEULES que l'agent peut annoncer
+          return r.ok ? { ok: true, id: r.id, statut: "a_valider", longueurs: lengths.map((l) => `${networkName(l.platform)} : ${l.length}/${l.limit} caractères`) } : { ok: false, raison: r.reason === "image_inconnue" ? "image inconnue : utilise la référence rendue par generer_image" : "brouillon invalide (titre, légende ou réseau)" };
         },
       }),
   },

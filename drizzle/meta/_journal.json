@@ -85,6 +85,13 @@
       "when": 1793354429417,
       "tag": "0011_review-du-maitre",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793359564608,
+      "tag": "0012_publication",
+      "breakpoints": true
     }
   ]
 }

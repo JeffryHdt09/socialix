@@ -3,11 +3,11 @@ import { parisToUtc } from "@/lib/dates";
 // Règles d'un post, écrites UNE fois et partagées par l'éditeur (aides en direct) et par le serveur (contrôle final). Le navigateur
 // peut mentir : le serveur revérifie tout avec ce fichier. Aucune dépendance serveur ici (utilisable côté navigateur).
 
-export const PLATFORMS = ["instagram", "facebook", "linkedin", "x", "tiktok", "threads", "pinterest", "youtube"] as const;
+export const PLATFORMS = ["instagram", "facebook", "linkedin", "x", "tiktok", "threads", "pinterest", "youtube", "bluesky"] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
 // Longueur maximale d'une légende, par réseau (en caractères). X est le plus strict, Facebook le plus large.
-export const CAPTION_LIMITS: Record<Platform, number> = { instagram: 2200, facebook: 63206, linkedin: 3000, x: 280, tiktok: 2200, threads: 500, pinterest: 500, youtube: 5000 };
+export const CAPTION_LIMITS: Record<Platform, number> = { instagram: 2200, facebook: 63206, linkedin: 3000, x: 280, tiktok: 2200, threads: 500, pinterest: 500, youtube: 5000, bluesky: 300 };
 // Réseaux qui exigent une image (Instagram, Pinterest) ou une vidéo (TikTok, YouTube : phase 3, pas encore possible).
 export const IMAGE_REQUIRED: readonly Platform[] = ["instagram", "pinterest"];
 export const VIDEO_ONLY: readonly Platform[] = ["tiktok", "youtube"];
@@ -29,6 +29,28 @@ export function cleanHashtags(raw: readonly string[]): string[] {
   return out;
 }
 
+// Le texte réellement envoyé au réseau : la légende, puis les hashtags sur une ligne à part (« #café #lyon »). C'est ce texte, et
+// non la légende seule, qui compte dans la limite d'un réseau (X : 280 signes hashtags compris).
+export function buildPostText(caption: string, hashtags: readonly string[]): string {
+  const text = caption.trim();
+  // Un hashtag déjà écrit dans la légende n'est pas ajouté une seconde fois : les agents (et les personnes) mettent souvent les
+  // hashtags dans le texte ET dans la liste (constaté au premier essai réel : 340 signes au lieu de 283). Sans tenir compte des majuscules.
+  const present = new Set((text.match(/#[\p{L}\p{N}_]+/gu) ?? []).map((h) => h.slice(1).toLowerCase()));
+  const tags = hashtags
+    .filter((h) => !present.has(h.toLowerCase()))
+    .map((h) => `#${h}`)
+    .join(" ");
+  if (!tags) return text;
+  return text ? `${text}\n\n${tags}` : tags;
+}
+
+// La longueur RÉELLE du texte envoyé, réseau par réseau, calculée par le programme. Un modèle ne sait pas compter les caractères de
+// façon fiable (au premier essai réel, le Créateur a annoncé 276 signes pour un texte qui en faisait 340, et le Maître l'a cru).
+export function textLengths(caption: string, hashtags: readonly string[], platforms: readonly Platform[]): { platform: Platform; length: number; limit: number }[] {
+  const length = buildPostText(caption, hashtags).length;
+  return platforms.map((platform) => ({ platform, length, limit: CAPTION_LIMITS[platform] }));
+}
+
 export type PostInput = { title: string; caption: string; hashtags: readonly string[]; platforms: readonly string[]; imageUrl: string | null; day: string; time: string };
 export type PostField = "title" | "caption" | "hashtags" | "platforms" | "image" | "date";
 export type PostErrors = Partial<Record<PostField, string>>;
@@ -36,18 +58,20 @@ export type ValidPost = { title: string; caption: string; hashtags: string[]; pl
 export type PostCheck = { ok: true; data: ValidPost } | { ok: false; errors: PostErrors };
 
 export const isPlatform = (p: string): p is Platform => (PLATFORMS as readonly string[]).includes(p);
-const NETWORK_NAME: Record<Platform, string> = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", x: "X", tiktok: "TikTok", threads: "Threads", pinterest: "Pinterest", youtube: "YouTube" };
+const NETWORK_NAME: Record<Platform, string> = { instagram: "Instagram", facebook: "Facebook", linkedin: "LinkedIn", x: "X", tiktok: "TikTok", threads: "Threads", pinterest: "Pinterest", youtube: "YouTube", bluesky: "Bluesky" };
 export const networkName = (p: Platform) => NETWORK_NAME[p];
 
 // Ce qu'il manque à un post pour pouvoir être programmé : légende, réseau, média si le réseau l'exige, date au moins 2 minutes dans
 // le futur. Utilisé par l'éditeur (validatePost) et par « Valider » (un post déjà en base, dont la date est déjà en UTC).
-export function scheduleErrors(post: { caption: string; platforms: readonly Platform[]; imageUrl: string | null; scheduledAt: Date | null }, now: Date): PostErrors {
+export function scheduleErrors(post: { caption: string; hashtags?: readonly string[]; platforms: readonly Platform[]; imageUrl: string | null; scheduledAt: Date | null }, now: Date): PostErrors {
   const errors: PostErrors = {};
   const caption = post.caption.trim();
   if (!caption) errors.caption = "Écris la légende avant de programmer.";
   else {
-    const tooLong = post.platforms.find((p) => caption.length > CAPTION_LIMITS[p]);
-    if (tooLong) errors.caption = `Trop long pour ${NETWORK_NAME[tooLong]} : ${CAPTION_LIMITS[tooLong]} caractères au plus.`;
+    // La légende ET ses hashtags : c'est le texte envoyé, et le réseau compte les deux
+    const length = buildPostText(caption, post.hashtags ?? []).length;
+    const tooLong = post.platforms.find((p) => length > CAPTION_LIMITS[p]);
+    if (tooLong) errors.caption = `Trop long pour ${NETWORK_NAME[tooLong]} : ${CAPTION_LIMITS[tooLong]} caractères au plus, hashtags compris (là : ${length}).`;
   }
   if (post.platforms.length === 0) errors.platforms = "Choisis au moins un réseau.";
   else {
@@ -89,7 +113,7 @@ export function validatePost(input: PostInput, mode: "draft" | "schedule", now: 
 
   if (mode === "schedule") {
     // Les erreurs de saisie déjà trouvées plus haut (date mal écrite, réseau inconnu…) priment sur celles de la programmation
-    const more = scheduleErrors({ caption, platforms, imageUrl: input.imageUrl, scheduledAt }, now);
+    const more = scheduleErrors({ caption, hashtags, platforms, imageUrl: input.imageUrl, scheduledAt }, now);
     for (const [field, message] of Object.entries(more) as [PostField, string][]) if (!errors[field]) errors[field] = message;
   }
 

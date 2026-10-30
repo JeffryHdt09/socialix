@@ -1,12 +1,14 @@
 import "server-only";
 
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { agentCommunications, agentPlans, agentTaskDependencies, agentTasks, projects } from "@/db/schema";
+import { agentCommunications, agentPlans, agentTaskDependencies, agentTasks, posts, projects } from "@/db/schema";
 import { findAgent } from "@/lib/agents";
 import { ChatError, type ModelOptions } from "@/lib/chat";
 import { runReview, type ReviewResult } from "@/lib/review";
+import { IMAGE_REQUIRED, isPlatform, networkName, textLengths } from "@/lib/post-rules";
+import { scanForInjection } from "@/lib/prompt-safety";
 import { type ReviewTask, withFeedback } from "@/lib/review-rules";
 import { findReadyTasks } from "@/lib/task-runner";
 
@@ -36,7 +38,7 @@ export async function findPlansToReview(limit = 10): Promise<string[]> {
   return rows.map((r) => r.id as string);
 }
 
-type Claimed = { id: string; projectId: string; request: string; summary: string; round: number; failures: number; token: string };
+type Claimed = { id: string; projectId: string; request: string; summary: string; round: number; failures: number; token: string; createdAt: Date };
 
 // Réserve la revue : « personne ne relit ce plan » devient « je le relis » en UNE instruction, avec toutes les conditions dans le
 // même WHERE (comme claimTask). Deux appels simultanés : la base n'en laisse passer qu'un. Le jeton rendu est l'heure exacte de la
@@ -48,10 +50,10 @@ async function claimReview(planId: string): Promise<Claimed | null> {
       and (p.review_started_at is null or p.review_started_at < now() - make_interval(mins => ${REVIEW_STALE_MINUTES}))
       and exists (select 1 from agent_tasks t where t.plan_id = p.id)
       and not exists (select 1 from agent_tasks t where t.plan_id = p.id and t.status in ('pending', 'running'))
-    returning p.id, p.project_id, p.request, p.summary, p.review_round, p.review_failures, extract(epoch from p.review_started_at)::text as token`);
+    returning p.id, p.project_id, p.request, p.summary, p.review_round, p.review_failures, p.created_at, extract(epoch from p.review_started_at)::text as token`);
   const r = rows[0];
   if (!r) return null;
-  return { id: r.id as string, projectId: r.project_id as string, request: r.request as string, summary: r.summary as string, round: r.review_round as number, failures: r.review_failures as number, token: r.token as string };
+  return { id: r.id as string, projectId: r.project_id as string, request: r.request as string, summary: r.summary as string, round: r.review_round as number, failures: r.review_failures as number, token: r.token as string, createdAt: new Date(r.created_at as string | Date) };
 }
 
 // « Cette revue est toujours la mienne » : plan actif, pas encore conclu, et réservé avec CE jeton.
@@ -70,6 +72,28 @@ async function release(c: Claimed, failure: boolean): Promise<void> {
 }
 
 type TaskRow = typeof agentTasks.$inferSelect;
+
+// Ce que le PROGRAMME constate sur les brouillons de post déposés par l'équipe pendant ce plan : la longueur réelle par réseau
+// (hashtags compris), une image manquante quand le réseau l'exige, ou l'absence de brouillon alors que le Créateur avait une tâche.
+// Ces faits vont au Maître : il n'a pas à compter lui-même (il en est incapable de façon fiable).
+async function draftChecks(c: Claimed, rows: TaskRow[]): Promise<string[]> {
+  const drafts = await db
+    .select({ title: posts.title, caption: posts.caption, hashtags: posts.hashtags, platforms: posts.platforms, imageUrl: posts.imageUrl })
+    .from(posts)
+    .where(and(eq(posts.projectId, c.projectId), eq(posts.createdBy, "agent"), gte(posts.createdAt, c.createdAt)));
+  const lines: string[] = [];
+  for (const d of drafts) {
+    const title = scanForInjection(d.title).safe ? d.title.slice(0, 80) : "(titre écarté)";
+    const platforms = d.platforms.filter(isPlatform);
+    for (const l of textLengths(d.caption, d.hashtags, platforms)) {
+      lines.push(`Brouillon « ${title} » pour ${networkName(l.platform)} : ${l.length} caractères sur ${l.limit} autorisés, hashtags compris${l.length > l.limit ? " : TROP LONG, à renvoyer au Créateur" : ""}.`);
+    }
+    const needImage = platforms.filter((p) => IMAGE_REQUIRED.includes(p));
+    if (!d.imageUrl && needImage.length > 0) lines.push(`Brouillon « ${title} » : pas d'image, alors que ${needImage.map(networkName).join(" et ")} en exige une.`);
+  }
+  if (drafts.length === 0 && rows.some((t) => t.agent === "createur" && t.status === "done")) lines.push("Aucun brouillon de post n'a été déposé pendant ce plan, alors que le Créateur avait une tâche.");
+  return lines;
+}
 
 // Le Maître renvoie des tâches : en UNE transaction, le plan passe au tour suivant, les tâches renvoyées reçoivent le retour dans
 // leur consigne et repartent, ainsi que les tâches terminées qui s'appuyaient sur elles. Les autres (en échec, annulées) ne
@@ -129,7 +153,7 @@ export async function executeReview(planId: string, options: ModelOptions = {}):
   const [project] = await db.select({ teams: projects.teams }).from(projects).where(eq(projects.id, claimed.projectId)).limit(1);
   let review: ReviewResult;
   try {
-    review = await runReview({ request: claimed.request, summary: claimed.summary, tasks, round: claimed.round }, { ...options, teams: project?.teams });
+    review = await runReview({ request: claimed.request, summary: claimed.summary, tasks, round: claimed.round, checks: await draftChecks(claimed, rows) }, { ...options, teams: project?.teams });
   } catch (error) {
     const quota = error instanceof ChatError && error.reason === "quota";
     // Journal : jamais error.message (il peut contenir du texte de la personne ou des détails de requête)
