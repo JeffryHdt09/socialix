@@ -2,15 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 
 import { getSession } from "@/lib/dal";
 import { readLogoFile } from "@/lib/logo-upload";
-import { deletePostAs, duplicatePostAs, savePostAs, type SavePostResult, unschedulePostAs, validatePostAs } from "@/lib/post-queries";
+import { type ActionResult, deletePostAs, duplicatePostAs, isUuid, savePostAs, type SavePostResult, unschedulePostAs, validatePostAs } from "@/lib/post-queries";
 import type { PostInput } from "@/lib/post-rules";
 import { getOwnedProject } from "@/lib/ownership";
 import { imagekitConfig, retouchImage } from "@/lib/imagekit";
-import { allowRetouch } from "@/lib/retouch-limit";
+import { allowRetouch, allowUpload } from "@/lib/retouch-limit";
 import { validateSpec } from "@/lib/retouch-rules";
 import { agentImageUrl, projectImageKeyFromUrl, uploadPostImage } from "@/lib/storage";
 
@@ -18,8 +17,13 @@ import { agentImageUrl, projectImageKeyFromUrl, uploadPostImage } from "@/lib/st
 // fois, le propriétaire vient de la session, et tout le reste (projet, post, champs, image) est revérifié dans post-queries.ts.
 // Les identifiants liés au formulaire (`.bind`) ne sont pas crus pour autant.
 
-const isUuid = (v: unknown): v is string => z.uuid().safeParse(v).success;
 const postsPath = (projectId: string) => `/dashboard/${projectId}/posts`;
+
+// Une action qui échoue ne doit pas laisser un bouton muet : on revient sur la page Posts avec un CODE court (jamais un texte :
+// la page affiche un message fixe, une adresse trafiquée ne peut donc pas faire afficher n'importe quoi).
+function failed(projectId: string, result: ActionResult): void {
+  if (!result.ok && result.code) redirect(`${postsPath(projectId)}?erreur=${result.code}`);
+}
 
 // Rafraîchit la page Posts et la vue d'ensemble (leurs compteurs viennent des posts)
 function refresh(projectId: string) {
@@ -40,13 +44,15 @@ export async function validatePostAction(projectId: string, postId: string): Pro
   refresh(a.projectId);
   // Il manque quelque chose pour partir : on ouvre l'éditeur plutôt que de laisser la personne devant un bouton muet
   if (!result.ok && result.needsEditor) redirect(`${postsPath(a.projectId)}/${a.postId}?programmer=1`);
+  failed(a.projectId, result);
 }
 
 export async function unschedulePostAction(projectId: string, postId: string): Promise<void> {
   const a = await authorized(projectId, postId);
   if (!a) return;
-  await unschedulePostAs(a.userId, a.projectId, a.postId);
+  const result = await unschedulePostAs(a.userId, a.projectId, a.postId);
   refresh(a.projectId);
+  failed(a.projectId, result);
 }
 
 export async function duplicatePostAction(projectId: string, postId: string): Promise<void> {
@@ -55,13 +61,15 @@ export async function duplicatePostAction(projectId: string, postId: string): Pr
   const result = await duplicatePostAs(a.userId, a.projectId, a.postId);
   refresh(a.projectId);
   if (result.ok && result.id) redirect(`${postsPath(a.projectId)}/${result.id}`); // la copie s'ouvre dans l'éditeur
+  failed(a.projectId, result);
 }
 
 export async function deletePostAction(projectId: string, postId: string): Promise<void> {
   const a = await authorized(projectId, postId);
   if (!a) return;
-  await deletePostAs(a.userId, a.projectId, a.postId);
+  const result = await deletePostAs(a.userId, a.projectId, a.postId);
   refresh(a.projectId);
+  failed(a.projectId, result);
 }
 
 // Enregistre un post depuis l'éditeur : brouillon ou programmé. `postId` null = nouveau post. Le contenu arrive comme un objet simple,
@@ -94,6 +102,7 @@ export async function uploadPostImageAction(projectId: string, formData: FormDat
   const session = await getSession();
   if (!session) return { ok: false, error: "Ta session a expiré. Reconnecte-toi." };
   if (!isUuid(projectId) || !(await getOwnedProject(session.user.id, projectId))) return { ok: false, error: "Projet introuvable." };
+  if (!allowUpload(session.user.id)) return { ok: false, error: "Trop d'images envoyées en peu de temps : attends quelques minutes." };
   const file = await readLogoFile(formData.get("image"));
   if (file === null) return { ok: false, error: "Choisis une image." };
   if (!file.ok) return { ok: false, error: file.error };

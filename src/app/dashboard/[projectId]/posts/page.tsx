@@ -4,9 +4,10 @@ import { Suspense } from "react";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PostCard } from "@/components/posts/post-card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireMyProject, verifySession } from "@/lib/dal";
-import { type PostStatus, type PostView, readProjectPosts } from "@/lib/post-queries";
+import { type PostStatus, readPostCounts, readProjectPosts } from "@/lib/post-queries";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Posts · Socialix" };
@@ -19,6 +20,14 @@ const TABS = [
   { slug: "publies", label: "Publiés", status: "published", empty: "Aucun post publié pour l’instant." },
   { slug: "echecs", label: "Échecs", status: "failed", empty: "Aucun échec de publication." },
 ] as const satisfies readonly { slug: string; label: string; status: PostStatus; empty: string }[];
+
+// Pourquoi une action (valider, déprogrammer, dupliquer, supprimer) a échoué : l'adresse porte un CODE (?erreur=etat), jamais un
+// texte. Un code inconnu n'affiche rien : une adresse trafiquée ne peut pas faire écrire n'importe quoi sur la page.
+const ERRORS: Record<string, string> = {
+  etat: "Ce post a changé entre-temps (autre onglet, déjà traité ou publié). La liste est à jour : vérifie son état avant de recommencer.",
+  limite: "Ce projet a atteint la limite de 500 posts. Supprime-en avant d’en dupliquer ou d’en créer.",
+  introuvable: "Ce post est introuvable : il a peut-être été supprimé.",
+};
 
 export default function PostsPage({ params, searchParams }: PageProps<"/dashboard/[projectId]/posts">) {
   return (
@@ -33,30 +42,38 @@ export default function PostsPage({ params, searchParams }: PageProps<"/dashboar
 
 async function PostsContent({ params, searchParams }: Pick<PageProps<"/dashboard/[projectId]/posts">, "params" | "searchParams">) {
   const { projectId } = await params;
-  const { statut } = await searchParams;
+  const { statut, erreur } = await searchParams;
   const { user } = await verifySession();
   await requireMyProject(projectId); // 404 si le projet n'est pas à la personne
-  const all = await readProjectPosts(user.id, projectId);
+  // Les compteurs viennent d'une requête qui ne transporte aucune légende ; seul l'onglet ouvert charge ses posts.
+  const counts = await readPostCounts(user.id, projectId);
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const message = typeof erreur === "string" && Object.hasOwn(ERRORS, erreur) ? ERRORS[erreur] : null;
+  const banner = message ? (
+    <p role="alert" className="rounded-lg border border-destructive px-3 py-2 text-[14px] text-destructive">
+      {message}
+    </p>
+  ) : null;
 
-  const count = (s: PostStatus) => all.filter((p) => p.status === s).length;
+  const count = (s: PostStatus) => counts[s];
   // Onglet ouvert : celui de l'adresse ; sinon le premier qui contient quelque chose (« À valider » en tête, PAGES.md)
   const current = TABS.find((t) => t.slug === statut) ?? TABS.find((t) => count(t.status) > 0) ?? TABS[0];
-  const shown: PostView[] = all.filter((p) => p.status === current.status);
-  // Les programmés se lisent dans l'ordre où ils partiront ; les autres du plus récent au plus ancien
-  if (current.status === "scheduled") shown.sort((a, b) => (a.scheduledAt?.getTime() ?? 0) - (b.scheduledAt?.getTime() ?? 0));
+  // Les programmés se lisent dans l'ordre où ils partiront, les autres du plus récent au plus ancien (voir readProjectPosts)
+  const shown = total === 0 ? [] : await readProjectPosts(user.id, projectId, current.status);
 
-  if (all.length === 0) {
+  if (total === 0) {
     return (
       <section className="rounded-xl border border-dashed border-border p-8">
         <p className="text-[15px] font-semibold">Aucun post.</p>
+        {banner}
         <p className="mt-1 text-[15px] text-muted-foreground">Demande à l’équipe IA ou crée-en un à la main.</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link href={`/dashboard/${projectId}/agents?agent=maitre`} className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 text-[15px] font-semibold text-primary-foreground transition-colors duration-150 hover:bg-primary/90">
-            Demander à l’équipe IA
-          </Link>
-          <Link href={`/dashboard/${projectId}/posts/new`} className="inline-flex min-h-11 items-center rounded-md border border-border bg-card px-4 text-[15px] font-semibold transition-colors duration-150 hover:border-foreground">
-            Créer à la main
-          </Link>
+          <Button asChild>
+            <Link href={`/dashboard/${projectId}/agents?agent=maitre`}>Demander à l’équipe IA</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/dashboard/${projectId}/posts/new`}>Créer à la main</Link>
+          </Button>
         </div>
       </section>
     );
@@ -64,6 +81,7 @@ async function PostsContent({ params, searchParams }: Pick<PageProps<"/dashboard
 
   return (
     <>
+      {banner}
       <nav aria-label="Filtrer les posts par état" className="flex flex-wrap gap-2">
         {TABS.map((t) => {
           const active = t.slug === current.slug;

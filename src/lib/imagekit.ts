@@ -17,6 +17,9 @@ export const IMAGEKIT_FOLDER = "/socialix-tmp"; // dossier d'ImageKit qui ne con
 export const MAX_RESULT_BYTES = 5 * 1024 * 1024;
 const PROCESSING_RETRIES = 8; // une transformation IA peut prendre de quelques secondes à une minute
 const PROCESSING_PAUSE_MS = 6_000;
+// Plafond de TOUTE la retouche (envoi, attente, récupération). Sans lui, 8 essais de 90 s plus les pauses pouvaient tenir une
+// action serveur ouverte plus de 12 minutes, bien au-delà de ce qu'un hébergeur laisse durer.
+const OVERALL_TIMEOUT_MS = 240_000;
 
 export type ImageKitConfig = { endpoint: string; privateKey: string };
 
@@ -34,7 +37,8 @@ export function imagekitConfig(env: NodeJS.ProcessEnv = process.env): ImageKitCo
 
 const authHeader = (key: string) => `Basic ${Buffer.from(`${key}:`).toString("base64")}`;
 
-type Deps = { fetch?: typeof fetch; sleep?: (ms: number) => Promise<void>; config?: ImageKitConfig | null };
+// `now` : l'horloge, remplaçable pour tester le délai total sans attendre quatre minutes.
+type Deps = { fetch?: typeof fetch; sleep?: (ms: number) => Promise<void>; config?: ImageKitConfig | null; now?: () => number };
 
 export type RetouchResult = { ok: true; bytes: Uint8Array; mediaType: "image/png" | "image/jpeg" | "image/webp" } | { ok: false; reason: "non_configure" | "indisponible" | "trop_long" | "refuse" };
 
@@ -46,6 +50,8 @@ export async function retouchImage(sourceUrl: string, spec: RetouchSpec, deps: D
   const doFetch = deps.fetch ?? fetch;
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
 
+  const now = deps.now ?? Date.now;
+  const startedAt = now();
   let fileId: string | null = null;
   try {
     const form = new FormData();
@@ -62,8 +68,10 @@ export async function retouchImage(sourceUrl: string, spec: RetouchSpec, deps: D
 
     const url = `${config.endpoint}/tr:${buildTransformation(spec)}${uploaded.filePath.split("/").map(encodeURIComponent).join("/")}`;
     for (let attempt = 0; attempt < PROCESSING_RETRIES; attempt++) {
+      const remaining = OVERALL_TIMEOUT_MS - (now() - startedAt);
+      if (remaining < 5_000) return { ok: false, reason: "trop_long" };
       // Pas d'AVIF : notre vérification reconnaît PNG, JPEG et WebP
-      const res = await doFetch(url, { headers: { accept: "image/png,image/jpeg,image/webp;q=0.9" }, signal: AbortSignal.timeout(90_000) });
+      const res = await doFetch(url, { headers: { accept: "image/png,image/jpeg,image/webp;q=0.9" }, signal: AbortSignal.timeout(Math.min(90_000, remaining)) });
       // ImageKit répond 200 avec une page « en préparation » tant que la transformation IA n'est pas finie
       const preparing = res.headers.get("is-intermediate-response") === "true" || /^text\//.test(res.headers.get("content-type") ?? "");
       if (res.ok && !preparing) {
