@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -42,12 +42,42 @@ const columns = {
   createdAt: posts.createdAt,
 };
 
-const isUuid = (v: unknown): v is string => z.uuid().safeParse(v).success;
+export const isUuid = (v: unknown): v is string => z.uuid().safeParse(v).success;
 
-// Tous les posts du projet, du plus récent au plus ancien. Liste vide si le projet n'est pas à la personne.
-export async function readProjectPosts(userId: string, projectId: string): Promise<PostView[]> {
+// Les posts du projet d'UN état, du plus récent au plus ancien (les programmés dans l'ordre où ils partiront). Liste vide si le projet
+// n'est pas à la personne. La page n'affiche qu'un onglet à la fois : on ne charge pas les légendes des quatre autres.
+export async function readProjectPosts(userId: string, projectId: string, status: PostStatus): Promise<PostView[]> {
   if (!(await getOwnedProject(userId, projectId))) return [];
-  return db.select(columns).from(posts).where(eq(posts.projectId, projectId)).orderBy(desc(posts.createdAt)).limit(MAX_POSTS_PER_PROJECT);
+  return db
+    .select(columns)
+    .from(posts)
+    .where(and(eq(posts.projectId, projectId), eq(posts.status, status)))
+    .orderBy(status === "scheduled" ? asc(posts.scheduledAt) : desc(posts.createdAt))
+    .limit(MAX_POSTS_PER_PROJECT);
+}
+
+// Combien de posts par état, en une requête qui ne transporte aucune légende : ce sont les compteurs des onglets.
+export async function readPostCounts(userId: string, projectId: string): Promise<Record<PostStatus, number>> {
+  const counts: Record<PostStatus, number> = { draft: 0, to_review: 0, scheduled: 0, published: 0, failed: 0 };
+  if (!(await getOwnedProject(userId, projectId))) return counts;
+  const rows = await db.select({ status: posts.status, n: sql<number>`count(*)::int` }).from(posts).where(eq(posts.projectId, projectId)).groupBy(posts.status);
+  for (const r of rows) counts[r.status] = r.n;
+  return counts;
+}
+
+type NewPost = Omit<typeof posts.$inferInsert, "projectId">;
+
+// Crée un post sous le plafond du projet. Le comptage et l'insertion se font sous un verrou propre au projet : sans lui, des
+// créations simultanées dépasseraient la limite. UN seul endroit pour savePostAs et duplicatePostAs : le verrou et le plafond ne
+// peuvent pas se désaccorder. Renvoie null quand le plafond est atteint.
+async function insertPostWithinCap(projectId: string, values: NewPost): Promise<{ id: string } | null> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`posts:${projectId}`}))`);
+    const [{ n }] = await tx.execute<{ n: string }>(sql`select count(*) as n from posts where project_id = ${projectId}`);
+    if (Number(n) >= MAX_POSTS_PER_PROJECT) return null;
+    const [row] = await tx.insert(posts).values({ ...values, projectId }).returning({ id: posts.id });
+    return row;
+  });
 }
 
 export async function getPostAs(userId: string, projectId: string, postId: string): Promise<PostView | null> {
@@ -84,17 +114,7 @@ export async function savePostAs(userId: string, projectId: string, postId: stri
   const status: PostStatus = mode === "schedule" ? "scheduled" : "draft";
 
   if (postId === null) {
-    // Plafond et insertion sous un verrou propre au projet : sans lui, des créations simultanées dépasseraient la limite
-    const created = await db.transaction(async (tx) => {
-      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`posts:${projectId}`}))`);
-      const [{ n }] = await tx.execute<{ n: string }>(sql`select count(*) as n from posts where project_id = ${projectId}`);
-      if (Number(n) >= MAX_POSTS_PER_PROJECT) return null;
-      const [row] = await tx
-        .insert(posts)
-        .values({ projectId, title: d.title, caption: d.caption, hashtags: d.hashtags, platforms: d.platforms, imageUrl: d.imageUrl, scheduledAt: d.scheduledAt, status, createdBy: "user" })
-        .returning({ id: posts.id });
-      return row;
-    });
+    const created = await insertPostWithinCap(projectId, { title: d.title, caption: d.caption, hashtags: d.hashtags, platforms: d.platforms, imageUrl: d.imageUrl, scheduledAt: d.scheduledAt, status, createdBy: "user" });
     return created ? { ok: true, id: created.id, status } : { ok: false, error: `Ce projet a atteint la limite de ${MAX_POSTS_PER_PROJECT} posts.` };
   }
 
@@ -108,14 +128,16 @@ export async function savePostAs(userId: string, projectId: string, postId: stri
   return updated.length > 0 ? { ok: true, id: postId, status } : { ok: false, error: "Ce post est introuvable ou déjà publié : il ne peut plus être modifié." };
 }
 
-export type ActionResult = { ok: true } | { ok: false; error: string; needsEditor?: boolean };
+// `code` : pourquoi l'action a échoué, en mot court. La page Posts l'affiche avec un texte FIXE (jamais un texte venu de l'adresse).
+export type ActionFailureCode = "etat" | "limite" | "introuvable";
+export type ActionResult = { ok: true } | { ok: false; error: string; code?: ActionFailureCode; needsEditor?: boolean };
 
 // « Valider » un post à valider : s'il a déjà tout ce qu'il faut pour partir (légende, réseau, image si le réseau l'exige, date au
 // moins 2 minutes dans le futur), il devient programmé. Sinon on renvoie `needsEditor` : la personne doit compléter dans l'éditeur.
 export async function validatePostAs(userId: string, projectId: string, postId: string, now: Date = new Date()): Promise<ActionResult> {
   const post = await getPostAs(userId, projectId, postId);
-  if (!post) return { ok: false, error: "Post introuvable." };
-  if (post.status !== "to_review") return { ok: false, error: "Ce post n'est pas à valider." };
+  if (!post) return { ok: false, error: "Post introuvable.", code: "introuvable" };
+  if (post.status !== "to_review") return { ok: false, error: "Ce post n'est pas à valider.", code: "etat" };
   const missing = scheduleErrors({ caption: post.caption, platforms: post.platforms.filter(isPlatform), imageUrl: post.imageUrl, scheduledAt: post.scheduledAt }, now);
   if (Object.keys(missing).length > 0) return { ok: false, error: "Il manque des informations (date, réseau, légende ou image) : complète le post dans l'éditeur.", needsEditor: true };
   const updated = await db
@@ -123,46 +145,37 @@ export async function validatePostAs(userId: string, projectId: string, postId: 
     .set({ status: "scheduled" })
     .where(and(eq(posts.id, postId), eq(posts.projectId, projectId), eq(posts.status, "to_review")))
     .returning({ id: posts.id });
-  return updated.length > 0 ? { ok: true } : { ok: false, error: "Ce post a déjà changé d'état." };
+  return updated.length > 0 ? { ok: true } : { ok: false, error: "Ce post a déjà changé d'état.", code: "etat" };
 }
 
 // « Déprogrammer » : un post programmé redevient brouillon (sa date reste affichée dans l'éditeur, rien n'est perdu).
 export async function unschedulePostAs(userId: string, projectId: string, postId: string): Promise<ActionResult> {
-  if (!isUuid(postId) || !(await getOwnedProject(userId, projectId))) return { ok: false, error: "Post introuvable." };
+  if (!isUuid(postId) || !(await getOwnedProject(userId, projectId))) return { ok: false, error: "Post introuvable.", code: "introuvable" };
   const updated = await db
     .update(posts)
     .set({ status: "draft" })
     .where(and(eq(posts.id, postId), eq(posts.projectId, projectId), eq(posts.status, "scheduled")))
     .returning({ id: posts.id });
-  return updated.length > 0 ? { ok: true } : { ok: false, error: "Ce post n'est pas programmé." };
+  return updated.length > 0 ? { ok: true } : { ok: false, error: "Ce post n'est pas programmé.", code: "etat" };
 }
 
 // « Dupliquer » : une copie en brouillon, sans date, à ton nom.
 export async function duplicatePostAs(userId: string, projectId: string, postId: string): Promise<ActionResult & { id?: string }> {
   const post = await getPostAs(userId, projectId, postId);
-  if (!post) return { ok: false, error: "Post introuvable." };
+  if (!post) return { ok: false, error: "Post introuvable.", code: "introuvable" };
   const title = `Copie de ${post.title}`.slice(0, 120);
-  const created = await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`posts:${projectId}`}))`);
-    const [{ n }] = await tx.execute<{ n: string }>(sql`select count(*) as n from posts where project_id = ${projectId}`);
-    if (Number(n) >= MAX_POSTS_PER_PROJECT) return null;
-    const [row] = await tx
-      .insert(posts)
-      .values({ projectId, title, caption: post.caption, hashtags: post.hashtags, platforms: post.platforms, imageUrl: post.imageUrl, status: "draft", createdBy: "user" })
-      .returning({ id: posts.id });
-    return row;
-  });
-  return created ? { ok: true, id: created.id } : { ok: false, error: `Ce projet a atteint la limite de ${MAX_POSTS_PER_PROJECT} posts.` };
+  const created = await insertPostWithinCap(projectId, { title, caption: post.caption, hashtags: post.hashtags, platforms: post.platforms, imageUrl: post.imageUrl, status: "draft", createdBy: "user" });
+  return created ? { ok: true, id: created.id } : { ok: false, error: `Ce projet a atteint la limite de ${MAX_POSTS_PER_PROJECT} posts.`, code: "limite" };
 }
 
 // « Supprimer » : tout sauf un post déjà publié (il existe chez le réseau ; on garde sa trace).
 export async function deletePostAs(userId: string, projectId: string, postId: string): Promise<ActionResult> {
-  if (!isUuid(postId) || !(await getOwnedProject(userId, projectId))) return { ok: false, error: "Post introuvable." };
+  if (!isUuid(postId) || !(await getOwnedProject(userId, projectId))) return { ok: false, error: "Post introuvable.", code: "introuvable" };
   const deleted = await db
     .delete(posts)
     .where(and(eq(posts.id, postId), eq(posts.projectId, projectId), sql`${posts.status} <> 'published'`))
     .returning({ id: posts.id });
-  return deleted.length > 0 ? { ok: true } : { ok: false, error: "Ce post est introuvable ou déjà publié : il ne peut pas être supprimé." };
+  return deleted.length > 0 ? { ok: true } : { ok: false, error: "Ce post est introuvable ou déjà publié : il ne peut pas être supprimé.", code: "etat" };
 }
 
 // Les images produites par l'équipe pour ce projet (jointes aux résultats de tâches), les plus récentes d'abord : l'éditeur les

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import { retouchImageAction } from "@/app/dashboard/[projectId]/posts/actions";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,9 @@ export function RetouchDialog({ projectId, imageUrl, configured, onUse }: { proj
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
+  // Numéro de la retouche en cours : fermer la fenêtre l'incrémente, et une réponse qui arrive APRÈS la fermeture est ignorée
+  // (sinon elle réapparaissait à la réouverture, à la place des réglages).
+  const run = useRef(0);
 
   const reason = !imageUrl ? "Ajoute d’abord une image pour pouvoir la retoucher." : !configured ? "La retouche n’est pas configurée : renseigne IMAGEKIT_URL_ENDPOINT et IMAGEKIT_PRIVATE_KEY dans .env.local." : null;
   if (reason || !imageUrl) {
@@ -66,11 +69,18 @@ export function RetouchDialog({ projectId, imageUrl, configured, onUse }: { proj
     setError(null);
     const checked = validateSpec(spec);
     if (!checked.ok) return setError(checked.error); // les mêmes règles que le serveur, pour répondre tout de suite
+    const mine = ++run.current;
     setPending(true);
-    const r = await retouchImageAction(projectId, imageUrl as string, checked.spec);
-    setPending(false);
-    if (r.ok) setResult(r.url);
-    else setError(r.error);
+    try {
+      const r = await retouchImageAction(projectId, imageUrl as string, checked.spec);
+      if (mine !== run.current) return; // la fenêtre a été fermée entre-temps
+      if (r.ok) setResult(r.url);
+      else setError(r.error);
+    } catch {
+      if (mine === run.current) setError("Impossible de joindre le serveur. Réessaie dans un instant.");
+    } finally {
+      if (mine === run.current) setPending(false);
+    }
   }
 
   return (
@@ -79,6 +89,8 @@ export function RetouchDialog({ projectId, imageUrl, configured, onUse }: { proj
       onOpenChange={(next) => {
         setOpen(next);
         if (!next) {
+          run.current++; // une retouche encore en route ne doit plus rien afficher
+          setPending(false);
           setResult(null);
           setError(null);
         }

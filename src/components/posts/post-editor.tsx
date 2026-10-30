@@ -65,18 +65,32 @@ export function PostEditor({ projectId, avatar, initial, teamImages, retouchConf
 
   async function upload(file: File) {
     setUploadError(null);
+    // On vide le champ fichier dans TOUS les cas (refus, erreur, succès) : sinon choisir de nouveau le même fichier, après l'avoir
+    // allégé, ne déclenche aucun événement et rien ne se passe.
+    const resetInput = () => {
+      if (fileRef.current) fileRef.current.value = "";
+    };
     // Refus rapide ; le serveur revérifie la taille ET le vrai format du fichier (pas seulement son nom)
-    if (file.size > LOGO_MAX_BYTES) return setUploadError(`Image trop lourde. ${LOGO_ERROR}`);
+    if (file.size > LOGO_MAX_BYTES) {
+      resetInput();
+      return setUploadError(`Image trop lourde. ${LOGO_ERROR}`);
+    }
     setUploading(true);
-    const form = new FormData();
-    form.set("image", file);
-    const r = await uploadPostImageAction(projectId, form);
-    setUploading(false);
-    if (r.ok) {
-      setImageUrl(r.url);
-      setErrors((e) => ({ ...e, image: undefined }));
-    } else setUploadError(r.error);
-    if (fileRef.current) fileRef.current.value = "";
+    try {
+      const form = new FormData();
+      form.set("image", file);
+      const r = await uploadPostImageAction(projectId, form);
+      if (r.ok) {
+        setImageUrl(r.url);
+        setErrors((e) => ({ ...e, image: undefined }));
+      } else setUploadError(r.error);
+    } catch {
+      // Réseau coupé, session expirée, fichier refusé avant d'arriver : sans ce filet, « Envoi… » restait affiché pour toujours
+      setUploadError("Impossible de joindre le serveur. Réessaie dans un instant.");
+    } finally {
+      setUploading(false);
+      resetInput();
+    }
   }
 
   async function save(mode: "draft" | "schedule") {
@@ -91,15 +105,22 @@ export function PostEditor({ projectId, avatar, initial, teamImages, retouchConf
     }
     setErrors({});
     setSaving(mode);
-    const r = await savePostAction(projectId, initial.id, input, mode);
-    setSaving(null);
-    if (r.ok) {
-      router.push(`/dashboard/${projectId}/posts?statut=${STATUS_TAB[r.status === "scheduled" ? "scheduled" : "draft"]}`);
-      router.refresh();
-      return;
+    try {
+      const r = await savePostAction(projectId, initial.id, input, mode);
+      if (r.ok) {
+        router.push(`/dashboard/${projectId}/posts?statut=${STATUS_TAB[r.status === "scheduled" ? "scheduled" : "draft"]}`);
+        router.refresh();
+        return;
+      }
+      setErrors(r.errors ?? {});
+      setFormError(r.error ?? (r.errors ? null : "Le post n’a pas pu être enregistré."));
+    } catch {
+      // L'action a levé une erreur (connexion coupée, texte refusé par la base, déploiement remplacé) : les boutons ne restent pas
+      // bloqués sur « Enregistrement… », et le texte saisi est toujours là.
+      setFormError("Impossible de joindre le serveur. Réessaie dans un instant : ce que tu as écrit est toujours là.");
+    } finally {
+      setSaving(null);
     }
-    setErrors(r.errors ?? {});
-    setFormError(r.error ?? (r.errors ? null : "Le post n’a pas pu être enregistré."));
     summaryRef.current?.focus();
   }
 
@@ -124,8 +145,8 @@ export function PostEditor({ projectId, avatar, initial, teamImages, retouchConf
       <form
         noValidate
         onSubmit={(e) => {
+          // Entrée dans un champ (titre, jour, heure) ne doit JAMAIS programmer le post : seuls les deux boutons enregistrent.
           e.preventDefault();
-          void save("schedule");
         }}
         className="flex min-w-0 flex-col gap-6"
       >
@@ -292,7 +313,7 @@ export function PostEditor({ projectId, avatar, initial, teamImages, retouchConf
           <Button type="button" variant="outline" disabled={saving !== null} onClick={() => void save("draft")}>
             {saving === "draft" ? "Enregistrement…" : "Enregistrer en brouillon"}
           </Button>
-          <Button type="submit" disabled={saving !== null}>
+          <Button type="button" disabled={saving !== null} onClick={() => void save("schedule")}>
             {saving === "schedule" ? "Programmation…" : "Programmer"}
           </Button>
           <Button asChild variant="ghost">

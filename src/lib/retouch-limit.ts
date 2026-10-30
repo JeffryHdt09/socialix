@@ -3,20 +3,41 @@
 // frein, pas une règle de facturation). Fonction pure, avec `now` en paramètre pour les tests.
 export const RETOUCH_LIMIT = 12; // retouches
 export const RETOUCH_WINDOW_MS = 10 * 60_000; // par fenêtre de 10 minutes
+// Les envois d'images ne coûtent pas de quota, mais chacun est rangé dans le stockage pour toujours (rien ne ménage les images
+// abandonnées) : sans frein, une boucle remplirait le stockage. 30 images par fenêtre de 10 minutes, largement assez à la main.
+export const UPLOAD_LIMIT = 30;
+export const UPLOAD_WINDOW_MS = 10 * 60_000;
 
-const recent = new Map<string, number[]>();
+// Un compteur par type d'action : « au plus `limit` actions par personne et par fenêtre de `windowMs` ».
+function makeLimiter(limit: number, windowMs: number) {
+  const recent = new Map<string, number[]>();
+  return {
+    allow(userId: string, now: number): boolean {
+      const kept = (recent.get(userId) ?? []).filter((t) => now - t < windowMs);
+      if (kept.length >= limit) {
+        recent.set(userId, kept);
+        return false;
+      }
+      kept.push(now);
+      recent.set(userId, kept);
+      return true;
+    },
+    reset: () => recent.clear(),
+  };
+}
+
+const retouches = makeLimiter(RETOUCH_LIMIT, RETOUCH_WINDOW_MS);
+const uploads = makeLimiter(UPLOAD_LIMIT, UPLOAD_WINDOW_MS);
 
 export function allowRetouch(userId: string, now: number = Date.now()): boolean {
-  const kept = (recent.get(userId) ?? []).filter((t) => now - t < RETOUCH_WINDOW_MS);
-  if (kept.length >= RETOUCH_LIMIT) {
-    recent.set(userId, kept);
-    return false;
-  }
-  kept.push(now);
-  recent.set(userId, kept);
-  return true;
+  return retouches.allow(userId, now);
+}
+
+export function allowUpload(userId: string, now: number = Date.now()): boolean {
+  return uploads.allow(userId, now);
 }
 
 export function resetRetouchLimit() {
-  recent.clear();
+  retouches.reset();
+  uploads.reset();
 }
