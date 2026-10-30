@@ -24,7 +24,15 @@ export type PlanView = {
   status: PlanStatus;
   createdAt: string;
   tasks: TaskView[];
+  report: string | null; // le rapport du Maître (chapitre 13b) : écrit en même temps que le plan passe à « terminé »
+  reviewRound: number; // combien de fois le Maître a renvoyé des tâches à leurs agents pour correction
 };
+
+// « Toutes les tâches sont closes, le Maître relit le travail » : le plan est encore actif, mais rien ne tourne plus.
+// Déduit des tâches : pas de colonne de plus à lire, et vrai exactement pendant la fenêtre qui sépare la dernière tâche du rapport.
+export function isAwaitingReview(plan: Pick<PlanView, "status" | "tasks">): boolean {
+  return plan.status === "active" && plan.tasks.length > 0 && plan.tasks.every((t) => t.status !== "pending" && t.status !== "running");
+}
 
 // Un état n'est jamais dit par la couleur seule (DESIGN.md) : chacun a son texte.
 export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {

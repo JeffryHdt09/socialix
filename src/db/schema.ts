@@ -150,11 +150,24 @@ export const agentPlans = pgTable(
     // Le plan tel que le modèle l'a produit (JSON), gardé pour comprendre après coup ce qui a été décidé.
     plan: jsonb("plan").notNull(),
     status: planStatusEnum("status").notNull().default("active"),
+    // --- Revue du Maître (chapitre 13b) ---
+    // Quand toutes les tâches sont faites, le Maître relit les résultats et conclut : son rapport pour la personne. Tant qu'il est
+    // vide, le plan n'est pas fini (il passe à « terminé » en même temps que le rapport s'écrit).
+    report: text("report"),
+    // Combien de fois le Maître a renvoyé des tâches à leurs agents (plafond : MAX_REVIEW_ROUNDS dans review-rules.ts).
+    reviewRound: integer("review_round").notNull().default(0),
+    // Réservation de la revue (comme started_at pour une tâche) : quelqu'un relit ce plan depuis cette heure. Elle sert de jeton,
+    // pour qu'une revue restée trop longtemps au travail n'écrase pas celle qui l'a remplacée. Vide = personne ne le relit.
+    reviewStartedAt: timestamp("review_started_at", { withTimezone: true }),
+    // Revues ratées (modèle en panne, réponse invalide) : au bout de MAX_REVIEW_FAILURES le plan est conclu sans relecture.
+    reviewFailures: integer("review_failures").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index("agent_plans_project_idx").on(table.projectId, table.createdAt),
     check("agent_plans_request_length", sql`char_length(btrim(${table.request})) between 1 and 4000`),
+    check("agent_plans_report_length", sql`${table.report} is null or char_length(btrim(${table.report})) between 1 and 4000`),
+    check("agent_plans_review_nonnegative", sql`${table.reviewRound} >= 0 and ${table.reviewFailures} >= 0`),
   ],
 ).enableRLS();
 

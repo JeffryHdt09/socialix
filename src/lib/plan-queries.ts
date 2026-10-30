@@ -53,6 +53,8 @@ export async function readPlans(userId: string, projectId: string, options: { li
     summary: p.summary,
     status: p.status,
     createdAt: p.createdAt.toISOString(),
+    report: p.report,
+    reviewRound: p.reviewRound,
     tasks: tasks
       .filter((t) => t.planId === p.id)
       .map((t) => ({
@@ -99,12 +101,13 @@ export async function cancelPlanAs(userId: string, projectId: string, planId: st
   return after ? { ok: true, plan: after } : notFound;
 }
 
-// Un plan dont plus aucune tâche n'est en attente ni en cours est fini : il passe à « terminé » (les tâches annulées ou en
-// échec ne bloquent pas la fin, elles restent visibles). Appelée par l'exécuteur du chapitre 11 après chaque tâche.
-// Sans effet sur un plan déjà terminé ou annulé (la condition « active » évite d'écraser une annulation faite entre-temps).
-export async function settlePlan(planId: string): Promise<boolean> {
+// Un plan dont plus aucune tâche n'est en attente ni en cours est prêt pour la REVUE DU MAÎTRE (chapitre 13b) : on ne le passe
+// plus à « terminé » ici. Seule la revue (src/lib/review-service.ts) conclut un plan, en écrivant son rapport. Les tâches annulées
+// ou en échec ne retardent pas la revue : le Maître les voit et les signale. Appelée par l'exécuteur après chaque tâche.
+// Vrai seulement pour un plan actif, sans rapport, sans tâche ouverte : un plan déjà conclu ou annulé ne se relit pas.
+export async function planAwaitsReview(planId: string): Promise<boolean> {
+  const [plan] = await db.select({ status: agentPlans.status, report: agentPlans.report }).from(agentPlans).where(eq(agentPlans.id, planId)).limit(1);
+  if (!plan || plan.status !== "active" || plan.report !== null) return false;
   const open = await db.select({ id: agentTasks.id }).from(agentTasks).where(and(eq(agentTasks.planId, planId), inArray(agentTasks.status, ["pending", "running"]))).limit(1);
-  if (open.length > 0) return false;
-  const settled = await db.update(agentPlans).set({ status: "done" }).where(and(eq(agentPlans.id, planId), eq(agentPlans.status, "active"))).returning({ id: agentPlans.id });
-  return settled.length > 0;
+  return open.length === 0;
 }

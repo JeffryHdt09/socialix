@@ -7,7 +7,7 @@ import { StatusDot } from "@/components/agents/status-dot";
 import { Button } from "@/components/ui/button";
 import { AGENTS, type AgentStatus } from "@/lib/agents";
 import { formatClock, formatPostDate } from "@/lib/dates";
-import { PLAN_STATUS_LABEL, type PlanView, summarizeTasks, TASK_STATUS_LABEL, type TaskStatus, taskNote } from "@/lib/plan-types";
+import { isAwaitingReview, PLAN_STATUS_LABEL, type PlanView, summarizeTasks, TASK_STATUS_LABEL, type TaskStatus, taskNote } from "@/lib/plan-types";
 import { cn } from "@/lib/utils";
 
 // La carte d'un plan du Maître (PAGES.md, fiche 5) : tâches numérotées, agent, état en toutes lettres, « après 02 »,
@@ -34,6 +34,7 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
 
   const tasks = onlyAgent ? plan.tasks.filter((t) => t.agent === onlyAgent) : plan.tasks;
   const allPending = plan.tasks.every((t) => t.status === "pending");
+  const reviewing = isAwaitingReview(plan);
   const titleId = `plan-${plan.id}`;
 
   async function confirmCancel() {
@@ -134,8 +135,22 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
 
       {plan.status === "active" && (
         <p className="mt-3 text-[13px] text-muted-foreground">
-          {allPending ? "Les tâches vont démarrer toutes seules, en commençant par celles qui n’attendent personne." : "Les tâches s’exécutent toutes seules."} Cette carte se met à jour.
+          {reviewing
+            ? "Le Maître relit le travail de l’équipe : il va conclure par un rapport, ou renvoyer des tâches à corriger."
+            : allPending
+              ? "Les tâches vont démarrer toutes seules, en commençant par celles qui n’attendent personne."
+              : "Les tâches s’exécutent toutes seules."}{" "}
+          {plan.reviewRound > 0 && !reviewing ? `Le Maître a déjà renvoyé des tâches à corriger (${plan.reviewRound} fois). ` : ""}Cette carte se met à jour.
         </p>
+      )}
+
+      {/* Le rapport du Maître : écrit à la conclusion du plan. Absent pour un plan annulé ; masqué dans l'onglet d'un agent de travail. */}
+      {!onlyAgent && plan.report !== null && (
+        <div className="mt-3 rounded-lg border border-border bg-background p-3">
+          <h4 className="text-[14px] font-semibold">Rapport du Maître</h4>
+          <p className="mt-1 whitespace-pre-wrap break-words">{plan.report}</p>
+          {plan.reviewRound > 0 && <p className="mt-2 font-mono text-[12px] text-muted-foreground">Renvoyé {plan.reviewRound} fois pour correction avant ce rapport.</p>}
+        </div>
       )}
 
       {!onlyAgent && plan.status === "active" && (

@@ -9,7 +9,7 @@ import { agentPlans, agentTasks, projects } from "@/db/schema";
 import { toolsFor } from "@/lib/agent-tools";
 import { findAgent } from "@/lib/agents";
 import { askAgent, ChatError, type ModelOptions } from "@/lib/chat";
-import { settlePlan } from "@/lib/plan-queries";
+import { planAwaitsReview } from "@/lib/plan-queries";
 import { scanForInjection } from "@/lib/prompt-safety";
 
 // L'exécution des tâches d'un plan (chapitre 11), SANS rien de propre à Inngest : Inngest ne fait que déclencher ces fonctions
@@ -48,7 +48,8 @@ export function describeTools(tools: ToolSet): string {
 }
 
 export type RunOutcome = "done" | "deferred" | "retry" | "failed" | "skipped" | "cancelled" | "limit";
-export type RunResult = { outcome: RunOutcome; readyTaskIds: string[] };
+// reviewPlanId : le plan de cette tâche n'a plus rien d'ouvert, il attend la revue du Maître (chapitre 13b) : l'appelant la lance.
+export type RunResult = { outcome: RunOutcome; readyTaskIds: string[]; reviewPlanId?: string };
 
 // « Cette tâche peut partir maintenant » : en attente, date atteinte, plan actif, toutes ses dépendances terminées.
 // Écrit en SQL pour que le choix et le verrouillage se fassent en UNE seule instruction (voir claimTask).
@@ -119,11 +120,10 @@ export async function recoverStaleTasks(): Promise<number> {
       last_error = 'interrompue', next_run_at = null, finished_at = case when t.attempts >= ${MAX_ATTEMPTS} then now() else null end, updated_at = now()
     where t.status = 'running' and t.started_at < now() - make_interval(mins => ${STALE_RUNNING_MINUTES})
     returning t.plan_id, t.status`);
+  // Une tâche abandonnée qui échoue pour de bon bloque celles qui l'attendaient : on les annule. Le plan, lui, sera relu par le
+  // Maître au prochain balayage (findPlansToReview), qui voit alors qu'il n'a plus rien d'ouvert.
   const failedPlans = new Set(rows.filter((r) => r.status === "failed").map((r) => r.plan_id as string));
-  for (const planId of failedPlans) {
-    await cancelBlockedTasks(planId);
-    await settlePlan(planId);
-  }
+  for (const planId of failedPlans) await cancelBlockedTasks(planId);
   return rows.length;
 }
 
@@ -213,6 +213,11 @@ export async function executeTask(taskId: string, options: ModelOptions = {}): P
   }
 }
 
+// « Ce plan attend sa revue » sous la forme d'un morceau de résultat, ajouté seulement quand c'est vrai.
+async function reviewFlag(planId: string): Promise<{ reviewPlanId?: string }> {
+  return (await planAwaitsReview(planId)) ? { reviewPlanId: planId } : {};
+}
+
 async function succeed(task: Claimed, output: { text: string; model: string; at: string; images?: string[] }): Promise<RunResult> {
   const repeatsAt = task.repeatEveryMinutes ? new Date(Date.now() + task.repeatEveryMinutes * 60_000) : null;
   const again = repeatsAt !== null && (task.repeatUntil === null || repeatsAt <= task.repeatUntil);
@@ -235,8 +240,7 @@ async function succeed(task: Claimed, output: { text: string; model: string; at:
     .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running"), sql`extract(epoch from ${agentTasks.startedAt})::text = ${task.claimToken}`))
     .returning({ id: agentTasks.id });
   if (updated.length === 0) return { outcome: "cancelled", readyTaskIds: [] };
-  await settlePlan(task.planId);
-  return { outcome: "done", readyTaskIds: await findReadyTasks({ planId: task.planId }) };
+  return { outcome: "done", readyTaskIds: await findReadyTasks({ planId: task.planId }), ...(await reviewFlag(task.planId)) };
 }
 
 // Quota épuisé : ce n'est pas la faute de la tâche. On la remet en attente pour plus tard, sans compter l'essai.
@@ -265,6 +269,5 @@ async function fail(task: Claimed, reason: string): Promise<RunResult> {
     .returning({ id: agentTasks.id });
   if (updated.length === 0) return { outcome: "cancelled", readyTaskIds: [] };
   await cancelBlockedTasks(task.planId);
-  await settlePlan(task.planId);
-  return { outcome: "failed", readyTaskIds: [] };
+  return { outcome: "failed", readyTaskIds: [], ...(await reviewFlag(task.planId)) };
 }

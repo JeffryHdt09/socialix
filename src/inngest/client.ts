@@ -12,11 +12,19 @@ export const inngest = new Inngest({ id: "socialix", isDev: process.env.NODE_ENV
 export const EVENTS = {
   planCreated: "socialix/plan.created",
   taskReady: "socialix/task.ready",
+  planReview: "socialix/plan.review", // toutes les tâches d'un plan sont closes : le Maître doit le relire (chapitre 13b)
 } as const;
 
 // Annonce un plan tout juste enregistré : Inngest cherchera ses tâches prêtes et les lancera.
 export async function sendPlanCreated(planId: string): Promise<void> {
   await inngest.send({ name: EVENTS.planCreated, data: { planId } });
+}
+
+// Annonce que des plans attendent la relecture du Maître. Plusieurs envois pour le même plan sont sans danger : la base ne laisse
+// passer qu'une revue à la fois (src/lib/review-service.ts).
+export async function sendPlansReview(planIds: string[]): Promise<void> {
+  if (planIds.length === 0) return;
+  await inngest.send(planIds.map((planId) => ({ name: EVENTS.planReview, data: { planId } })));
 }
 
 export async function sendTasksReady(taskIds: string[]): Promise<void> {
