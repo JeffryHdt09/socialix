@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Comptes · Socialix" };
 export default function AccountsPage() {
   return (
     <>
-      <PageHeader title="Comptes" subtitle="Les réseaux sociaux connectés à cette campagne." />
+      <PageHeader title="Comptes" subtitle="Les réseaux sociaux connectés à ce projet." />
       <ComingSoon chapter="14" what="la connexion au service de publication" />
     </>
   );

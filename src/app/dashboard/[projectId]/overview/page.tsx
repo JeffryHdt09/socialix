@@ -6,16 +6,16 @@ import { PublishedCard, ReviewCard, ScheduledCard } from "@/components/dashboard
 import { ActivityList, EmptyBanner, ReviewList } from "@/components/dashboard/overview-lists";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { OfficeScene } from "@/components/office/office-scene";
-import { findAgent } from "@/lib/agents";
-import { getConversation, getOverview, getPlans } from "@/lib/dal";
+import { agentsFor, findAgent } from "@/lib/agents";
+import { getConversation, getOverview, getPlans, requireMyProject } from "@/lib/dal";
 
 export const metadata: Metadata = { title: "Vue d’ensemble · Socialix" };
 
-// Vue d'ensemble d'une campagne (PAGES.md, fiche 4) : où en est la campagne, et ce qui attend une décision.
-export default function OverviewPage({ params, searchParams }: PageProps<"/dashboard/[campaignId]/overview">) {
+// Vue d'ensemble d'un projet (PAGES.md, fiche 4) : où en est le projet, et ce qui attend une décision.
+export default function OverviewPage({ params, searchParams }: PageProps<"/dashboard/[projectId]/overview">) {
   return (
     <>
-      <PageHeader title="Vue d’ensemble" subtitle="Où en est la campagne et ce qui attend une décision." />
+      <PageHeader title="Vue d’ensemble" subtitle="Où en est le projet et ce qui attend une décision." />
       {/* Les chiffres viennent de la base à chaque visite : derrière un <Suspense> (Cache Components), avec un squelette
           aux formes du contenu pendant le chargement (PAGES.md : pas de roue qui tourne au milieu de la page). */}
       <Suspense fallback={<OverviewSkeleton />}>
@@ -25,26 +25,27 @@ export default function OverviewPage({ params, searchParams }: PageProps<"/dashb
   );
 }
 
-async function OverviewContent({ params, searchParams }: Pick<PageProps<"/dashboard/[campaignId]/overview">, "params" | "searchParams">) {
-  const { campaignId } = await params;
+async function OverviewContent({ params, searchParams }: Pick<PageProps<"/dashboard/[projectId]/overview">, "params" | "searchParams">) {
+  const { projectId } = await params;
   // ?chat=agent ouvre le panneau de discussion ; une valeur inconnue est simplement ignorée
   const { chat } = await searchParams;
-  // getOverview vérifie que la campagne appartient à l'utilisateur AVANT de lire le moindre post.
-  const overview = await getOverview(campaignId);
-  const chatAgent = findAgent(chat);
-  // La conversation du panneau, lue seulement s'il est ouvert (la propriété de la campagne est revérifiée par getConversation)
-  const conversation = chatAgent ? await getConversation(campaignId, chatAgent.id) : [];
+  // getOverview vérifie que le projet appartient à l'utilisateur AVANT de lire le moindre post.
+  const overview = await getOverview(projectId);
+  const project = await requireMyProject(projectId);
+  const chatAgent = findAgent(chat, project.teams); // un agent d'une équipe non activée est ignoré
+  // La conversation du panneau, lue seulement s'il est ouvert (la propriété du projet est revérifiée par getConversation)
+  const conversation = chatAgent ? await getConversation(projectId, chatAgent.id) : [];
   // Les plans ne servent qu'à la conversation avec le Maître (c'est lui qui les présente)
-  const plans = chatAgent?.id === "maitre" ? await getPlans(campaignId) : [];
+  const plans = chatAgent?.id === "maitre" ? await getPlans(projectId) : [];
 
   return (
     <>
-      {overview.totalPosts === 0 && <EmptyBanner campaignId={campaignId} />}
+      {overview.totalPosts === 0 && <EmptyBanner projectId={projectId} />}
 
       {/* Trois cartes de tailles différentes : la première occupe deux colonnes sur quatre */}
       <div className="grid gap-4 md:grid-cols-4">
         <ScheduledCard overview={overview} className="md:col-span-2" />
-        <ReviewCard overview={overview} campaignId={campaignId} />
+        <ReviewCard overview={overview} projectId={projectId} />
         <PublishedCard overview={overview} />
       </div>
 
@@ -53,7 +54,7 @@ async function OverviewContent({ params, searchParams }: Pick<PageProps<"/dashbo
           Avec 5fr / 6fr, elle ne faisait que 497 px et les étiquettes disparaissaient sur un grand écran. */}
       <div className="grid gap-8 lg:grid-cols-[4fr_6fr]">
         <div className="flex min-w-0 flex-col gap-8">
-          <ReviewList items={overview.toReview} campaignId={campaignId} />
+          <ReviewList items={overview.toReview} projectId={projectId} />
           <ActivityList />
         </div>
         <section aria-labelledby="bureau-titre" className="min-w-0">
@@ -61,10 +62,10 @@ async function OverviewContent({ params, searchParams }: Pick<PageProps<"/dashbo
             Ton équipe
           </h2>
           {/* Chaque agent est un lien qui ouvre sa discussion dans un panneau à gauche (le même composant que la page Agents) */}
-          <OfficeScene theme="auto" agentHref={(id) => `/dashboard/${campaignId}/overview?chat=${id}`} />
+          <OfficeScene theme="auto" agents={agentsFor(project.teams)} agentHref={(id) => `/dashboard/${projectId}/overview?chat=${id}`} />
         </section>
       </div>
-      <AgentChatSheet agent={chatAgent} campaignId={campaignId} initialMessages={conversation} initialPlans={plans} />
+      <AgentChatSheet agent={chatAgent} projectId={projectId} initialMessages={conversation} initialPlans={plans} />
     </>
   );
 }

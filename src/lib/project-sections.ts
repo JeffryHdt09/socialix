@@ -1,7 +1,7 @@
-// Les sept sections d'une campagne : adresse (/dashboard/<id>/<slug>) et libellé du menu.
-// Source unique, partagée par le menu latéral et par l'action « changer de campagne » (qui n'accepte
+// Les sept sections d'un projet : adresse (/dashboard/<id>/<slug>) et libellé du menu.
+// Source unique, partagée par le menu latéral et par l'action « changer de projet » (qui n'accepte
 // que ces adresses, pour ne jamais rediriger vers une adresse inventée).
-export const CAMPAIGN_SECTIONS = [
+export const PROJECT_SECTIONS = [
   { slug: "overview", label: "Vue d’ensemble" },
   { slug: "agents", label: "Agents IA" },
   { slug: "posts", label: "Posts" },
@@ -11,4 +11,4 @@ export const CAMPAIGN_SECTIONS = [
   { slug: "settings", label: "Réglages" },
 ] as const;
 
-export type SectionSlug = (typeof CAMPAIGN_SECTIONS)[number]["slug"];
+export type SectionSlug = (typeof PROJECT_SECTIONS)[number]["slug"];

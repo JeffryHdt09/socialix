@@ -59,7 +59,7 @@ export function SignUpForm({ googleEnabled, googleFailed }: Props) {
   return (
     <>
       <h1 className="text-[28px] font-bold tracking-tight">Créer un compte</h1>
-      <p className="mt-1 text-[15px] text-muted-foreground">Ton équipe d’agents se met au travail dès la première campagne.</p>
+      <p className="mt-1 text-[15px] text-muted-foreground">Ton équipe d’agents se met au travail dès le premier projet.</p>
 
       {googleFailed && (
         <p role="alert" className="mt-6 text-[14px] font-medium text-destructive">

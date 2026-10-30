@@ -1,23 +1,23 @@
 import Image from "next/image";
 
-import { campaignIcons } from "@/components/campaign/campaign-icon";
-import type { CampaignIconKey } from "@/lib/campaign-rules";
+import { projectIcons } from "@/components/project/project-icon";
+import type { ProjectIconKey } from "@/lib/project-rules";
 import { cn } from "@/lib/utils";
 
-// Le médaillon d'une campagne : son logo téléversé, sinon son icône, sinon l'initiale de son nom.
-// Décoratif (aria-hidden) : le nom de la campagne est toujours écrit à côté.
-export function CampaignAvatar({
+// Le médaillon d'un projet : son logo téléversé, sinon son icône, sinon l'initiale de son nom.
+// Décoratif (aria-hidden) : le nom du projet est toujours écrit à côté.
+export function ProjectAvatar({
   name,
   iconKey,
   imageUrl,
   className,
 }: {
   name: string;
-  iconKey?: CampaignIconKey | null;
+  iconKey?: ProjectIconKey | null;
   imageUrl?: string | null;
   className?: string;
 }) {
-  const Icon = iconKey ? campaignIcons[iconKey].Icon : null;
+  const Icon = iconKey ? projectIcons[iconKey].Icon : null;
   // Array.from découpe par caractère complet : charAt(0) coupe un emoji (« 🍕 Pizza ») en deux moitiés
   // et afficherait un caractère cassé.
   const initial = (Array.from(name.trim())[0] ?? "").toUpperCase();

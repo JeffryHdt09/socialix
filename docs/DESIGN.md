@@ -99,7 +99,7 @@
 - Les états ne reposent jamais sur la couleur seule : texte ou hachures en plus.
 - Vrais éléments HTML (`button`, `a`, `label`), pas de `div` cliquable.
 
-### Règles apprises en auditant le cadre d'une campagne (chapitre 6, axe-core)
+### Règles apprises en auditant le cadre d'un projet (chapitre 6, axe-core)
 
 - **Caché à l'œil, pas aux lecteurs d'écran** : pour masquer un texte à l'écran (menu replié), utiliser `sr-only`, **jamais** `hidden` / `display: none`, qui le retire aussi des lecteurs d'écran. Un bouton dont le seul texte est en `hidden` n'a plus de nom accessible (erreur critique `button-name`).
 - **Repères** : une page a un `<main>` (fourni par `SidebarInset`), la barre latérale est un repère « complémentaire » étiqueté, ses liens sont dans un `<nav aria-label>`. Tout contenu doit être dans un repère.

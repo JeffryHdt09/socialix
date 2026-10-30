@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { DOT, StatusDot } from "@/components/agents/status-dot";
 import { pixelFont } from "@/components/office/pixel-font";
-import { AGENTS, type AgentId, type AgentStatus, STATUS_LABEL } from "@/lib/agents";
+import { type Agent, type AgentId, agentsFor, type AgentStatus, STATUS_LABEL } from "@/lib/agents";
 import { cn } from "@/lib/utils";
 
 import atelier from "../../../public/office/atelier.json";
@@ -21,12 +21,18 @@ type Props = {
   // Si fourni, chaque agent devient un lien vers cette adresse (chapitre 8 : ouvre sa conversation). Sans lui, la scène
   // reste une simple image que les lecteurs d'écran remplacent par la liste.
   agentHref?: (id: AgentId) => string;
+  // Les agents du projet (agentsFor(project.teams)). Sans eux : l'équipe marketing d'origine. Un agent sans poste dans
+  // atelier.json n'est pas dessiné ; il reste dans la liste, toujours visible (voir plus bas).
+  agents?: readonly Agent[];
   className?: string;
 };
 
 // Le bureau isométrique avec les agents à leur poste. Positions lues dans atelier.json, en % de l'image :
 // elles restent justes quelle que soit la taille de l'écran.
-export function OfficeScene({ theme, statuses = {}, decorative = false, agentHref, className }: Props) {
+export function OfficeScene({ theme, statuses = {}, decorative = false, agentHref, agents = agentsFor(undefined), className }: Props) {
+  const hasSeat = (a: Agent) => atelier.seats.some((seat) => seat.agent === a.id);
+  const seated = agents.filter(hasSeat);
+  const seatless = agents.filter((a) => !hasSeat(a));
   // Léger assombrissement des personnages la nuit, pour qu'ils baignent dans la lumière de la pièce (DESIGN.md).
   const dim = theme === "nuit" ? "brightness-[.82]" : theme === "auto" ? "dark:brightness-[.82]" : "";
   const bgClass = "object-cover [image-rendering:pixelated]";
@@ -38,7 +44,7 @@ export function OfficeScene({ theme, statuses = {}, decorative = false, agentHre
         className="relative w-full overflow-hidden rounded-2xl"
         style={{ aspectRatio: atelier.aspectRatio }}
         role={decorative ? "img" : undefined}
-        aria-label={decorative ? `Le bureau des agents, ${theme === "nuit" ? "de nuit" : "de jour"}, avec ${atelier.seats.length} agents à leur poste` : undefined}
+        aria-label={decorative ? `Le bureau des agents, ${theme === "nuit" ? "de nuit" : "de jour"}, avec ${seated.length} agents à leur poste` : undefined}
         // Informatif : l'image et les étiquettes sont cachées aux lecteurs d'écran, la liste ci-dessous les remplace.
         // Interactif : les étiquettes sont de vrais liens, la scène ne peut donc plus être cachée (un lien focalisable ne doit
         // jamais être dans une zone aria-hidden).
@@ -57,8 +63,8 @@ export function OfficeScene({ theme, statuses = {}, decorative = false, agentHre
         )}
 
         {atelier.seats.map((seat) => {
-          const agent = AGENTS.find((a) => a.id === seat.agent);
-          if (!agent) return null; // un poste sans agent déclaré dans agents.ts n'est pas dessiné
+          const agent = seated.find((a) => a.id === seat.agent);
+          if (!agent) return null; // poste d'un agent absent du projet (ou non déclaré dans agents.ts) : non dessiné
           const status = statuses[agent.id] ?? "idle";
           return (
             <div
@@ -107,35 +113,22 @@ export function OfficeScene({ theme, statuses = {}, decorative = false, agentHre
         // pour afficher les étiquettes (sous 32 rem, soit 512 px, de large). @lg:sr-only la cache à l'œil au-delà, sans la retirer. Le seuil a été mesuré : à 448 px, les
         // étiquettes « planificateur » et « analytique » se recouvraient.
         <ul aria-label="L’équipe d’agents" className={cn("mt-3 grid gap-1.5 text-[14px]", agentHref ? "@lg:hidden" : "@lg:sr-only")}>
-          {AGENTS.map((agent) => {
-            const status = statuses[agent.id] ?? "idle";
-            return (
-              <li key={agent.id}>
-                {agentHref ? (
-                  <Link
-                    href={agentHref(agent.id)}
-                    scroll={false}
-                    data-agent-link={agent.id}
-                    className="flex min-h-11 items-center gap-2 rounded-md px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-                  >
-                    <StatusDot status={status} />
-                    <span>
-                      <span className="font-semibold">{agent.name}</span> : {STATUS_LABEL[status].toLowerCase()}
-                      <span className="sr-only">. Ouvrir la conversation</span>
-                    </span>
-                  </Link>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <StatusDot status={status} />
-                    <span>
-                      <span className="font-semibold">{agent.name}</span> : {STATUS_LABEL[status].toLowerCase()}
-                    </span>
-                  </span>
-                )}
-              </li>
-            );
-          })}
+          {seated.map((agent) => (
+            <AgentListItem key={agent.id} agent={agent} status={statuses[agent.id] ?? "idle"} href={agentHref?.(agent.id)} />
+          ))}
         </ul>
+      )}
+      {!decorative && seatless.length > 0 && (
+        // Les agents sans poste dans le bureau (leur personnage n'est pas encore dessiné) : jamais cachés, sinon on ne
+        // pourrait plus leur parler sur grand écran.
+        <div className="mt-3">
+          <h3 className="text-[12px] font-medium text-muted-foreground">Pas encore de poste au bureau</h3>
+          <ul aria-label="Agents sans poste au bureau" className="mt-1 grid gap-1.5 text-[14px]">
+            {seatless.map((agent) => (
+              <AgentListItem key={agent.id} agent={agent} status={statuses[agent.id] ?? "idle"} href={agentHref?.(agent.id)} />
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
@@ -169,5 +162,34 @@ function CharacterWrapper({ href, children }: { href?: string; children: React.R
     <Link href={href} scroll={false} tabIndex={-1} aria-hidden="true" className="relative z-10 block w-full">
       {children}
     </Link>
+  );
+}
+
+// Une ligne de la liste des agents : un lien quand la scène est interactive, du texte sinon.
+function AgentListItem({ agent, status, href }: { agent: Agent; status: AgentStatus; href?: string }) {
+  return (
+    <li>
+      {href ? (
+        <Link
+          href={href}
+          scroll={false}
+          data-agent-link={agent.id}
+          className="flex min-h-11 items-center gap-2 rounded-md px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+        >
+          <StatusDot status={status} />
+          <span>
+            <span className="font-semibold">{agent.name}</span> : {STATUS_LABEL[status].toLowerCase()}
+            <span className="sr-only">. Ouvrir la conversation</span>
+          </span>
+        </Link>
+      ) : (
+        <span className="flex items-center gap-2">
+          <StatusDot status={status} />
+          <span>
+            <span className="font-semibold">{agent.name}</span> : {STATUS_LABEL[status].toLowerCase()}
+          </span>
+        </span>
+      )}
+    </li>
   );
 }

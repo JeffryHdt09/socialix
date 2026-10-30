@@ -6,18 +6,18 @@ import { Button } from "@/components/ui/button";
 import { formatPostDate, platformLabel } from "@/lib/dates";
 import type { ReviewItem } from "@/lib/overview-queries";
 
-// Encart d'une campagne qui n'a encore AUCUN post (PAGES.md, fiche 4 : « Rien de prévu pour l'instant », deux boutons).
-export function EmptyBanner({ campaignId }: { campaignId: string }) {
+// Encart d'un projet qui n'a encore AUCUN post (PAGES.md, fiche 4 : « Rien de prévu pour l'instant », deux boutons).
+export function EmptyBanner({ projectId }: { projectId: string }) {
   return (
     <section aria-labelledby="rien-de-prevu" className="rounded-xl border border-dashed border-border p-6">
       <h2 id="rien-de-prevu" className="text-[20px] font-semibold tracking-tight">
         Rien de prévu pour l’instant
       </h2>
-      <p className="mt-1 text-[15px] text-muted-foreground">Cette campagne n’a encore aucun post. Demande à ton équipe d’agents d’en préparer, ou crée-le toi-même.</p>
+      <p className="mt-1 text-[15px] text-muted-foreground">Ce projet n’a encore aucun post. Demande à ton équipe d’agents d’en préparer, ou crée-le toi-même.</p>
       <div className="mt-4 flex flex-wrap gap-3">
         {/* Boutons secondaires : le bouton principal de la page, c'est « Créer un post » de l'en-tête (un seul par page) */}
         <Button asChild variant="outline">
-          <Link href={`/dashboard/${campaignId}/agents`}>Demander à l’équipe IA</Link>
+          <Link href={`/dashboard/${projectId}/agents`}>Demander à l’équipe IA</Link>
         </Button>
         <CreatePostMenu variant="outline" />
       </div>
@@ -26,7 +26,7 @@ export function EmptyBanner({ campaignId }: { campaignId: string }) {
 }
 
 // La liste « À valider » : les posts que l'équipe IA a remis à l'humain, du plus proche au plus lointain.
-export function ReviewList({ items, campaignId }: { items: ReviewItem[]; campaignId: string }) {
+export function ReviewList({ items, projectId }: { items: ReviewItem[]; projectId: string }) {
   return (
     <section aria-labelledby="liste-valider">
       <h2 id="liste-valider" className="text-[13px] font-medium text-muted-foreground">
@@ -55,7 +55,7 @@ export function ReviewList({ items, campaignId }: { items: ReviewItem[]; campaig
                 </p>
               </div>
               <Button asChild variant="outline" size="sm">
-                <Link href={`/dashboard/${campaignId}/posts`}>
+                <Link href={`/dashboard/${projectId}/posts`}>
                   Relire<span className="sr-only"> « {post.title} »</span>
                 </Link>
               </Button>

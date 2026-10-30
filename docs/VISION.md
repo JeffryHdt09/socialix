@@ -26,12 +26,49 @@ Développement logiciel · Audio (transcription, traduction, sous-titres, voix d
 
 Chaque domaine = une **équipe** (un contexte, des agents, des outils). Ajouter un domaine ne doit pas demander de réécrire le moteur.
 
+**Un projet choisit ses domaines** (colonne `projects.teams`, chapitre 10b) : il dispose des agents communs (Maître, Recherche) et de ceux de chaque domaine activé. Les domaines sont **préparés d'avance** dans un catalogue (`TEAMS` dans `src/lib/agents.ts`) : le système ne crée pas d'agents à la volée, ce qui serait difficile à tester et à borner. Domaines présents : marketing et prospection. Un agent n'est utile que par ses outils : sans outils (chapitre 12), les agents d'un nouveau domaine discutent et conseillent seulement.
+
+## Le catalogue visé (décidé avec l'utilisateur le 28/10/2026)
+
+Chaque domaine couvre **toute sa chaîne**, du besoin au résultat.
+
+| Domaine | Chaîne d'agents | État |
+|---|---|---|
+| **Marketing digital** | recherche de marché → stratégie → création → planification → analyse | Présent (Maître, Recherche, Créateur, Planificateur, Analytique), sans outils |
+| **Prospection** | qualification → proposition → suivi (veille et analyse viendront avec les outils) | Présent depuis le 28/10 (Qualificateur, Propositions, Suivi), sans outils. Premier domaine hors marketing |
+| **Montage vidéo** | scénario → découpage → prompts → montage → déclinaisons | À faire, relié à Video Studio (voir plus bas) |
+| **Produits digitaux** | problème du marché → solution → offre → système de vente | À faire ; la validation de la demande passe avant tout investissement |
+
+L'agent Recherche (commun) sert la recherche de marché des trois derniers domaines.
+
+## Principes retenus
+
+- Construction **hybride** : orchestrer d'un côté, coder les parties complexes de l'autre.
+- Budget maîtrisé : le quota gratuit des modèles est une contrainte réelle (plafond de jetons par personne, au chapitre 11).
+- Autonomie : **les agents préparent, la personne valide les actions sensibles**.
+- Règle de calcul : tout ce qui est déterministe (facture, total, date) se fait par une fonction classique testée, jamais par le modèle.
+
+## Studio 360 et Flow MCP (le montage vidéo)
+
+Deux outils **locaux** (sur la machine de l'auteur) :
+
+- **Studio 360** : un logiciel de montage vidéo tout-en-un, **fork de HyperFrames** (Apache 2.0) avec nos extensions (relecture, storyboard, générateurs, montage de rushes, musique, kits de marque, zones de sécurité). Il expose un **serveur MCP `studio-360` de 56 outils** (projets, marques, contrôle qualité, relecture et versions, storyboard, génération Flow, montage, musique…) que Claude Code pilote.
+- **Flow MCP** : un programme qui ouvre une fenêtre Chrome à part, s'y connecte à Google Flow avec un compte Google personnel et clique les vrais boutons pour générer images et courtes vidéos, avec les crédits d'un abonnement Google AI (sans l'API payante). Studio 360 s'en sert pour ses outils `generate_image` et `generate_clip`.
+
+**Contexte externe à Socialix.** Flow MCP pilote un navigateur, ce que les garde-fous ci-dessous interdisent aux agents. Il reste donc hors du code de Socialix : les agents hébergés et les projets de clients ne l'utilisent pas.
+
+**Ce que cela implique pour Socialix**
+- Le domaine **montage vidéo** ne peut tourner que **sur la machine de l'auteur** : Flow MCP a besoin d'un Chrome réel et d'un écran allumé, et il automatise l'interface web de Flow (zone grise des conditions d'utilisation de Google, risque limité à un compte personnel, jamais celui d'un client).
+- Piste d'intégration (chapitre 12) : un agent « Monteur » qui appelle les outils MCP de Studio 360 depuis l'application lancée en local (le SDK que nous utilisons sait se connecter à un serveur MCP). Une génération Flow qui dépense des crédits attend toujours l'accord explicite de la personne : c'est déjà la règle de Studio 360.
+- Pour des clients hébergés, il faudrait un autre moteur de génération (API officielle) : décision à prendre à ce moment-là, pas maintenant.
+- Pas avant le chapitre 12, et avant cela, la prospection et le marketing donnent des revenus sans dépendre de ces outils.
+
 ## Les workflows visés
 
 - **Idée → logiciel** : analyse, recherche, architecture, développement par petites fonctionnalités, tests, documentation. Points de contrôle : architecture, tests, mise en production.
 - **Trouver des clients** : veille des besoins, qualification, estimation, proposition personnalisée, suivi, mesure des résultats. Une proposition précise à un problème précis, pas des envois en masse.
 - **Service audio** : un fichier déposé → vérification, transcription, correction, traduction, sous-titres (SRT/VTT), voix de synthèse, contrôle qualité, dossier de livraison.
-- **Campagne marketing complète** : brief, audience, stratégie, scripts, visuels, déclinaisons, contrôle qualité, rapport. Aucune publication ni dépense sans autorisation.
+- **Projet marketing complet** : brief, audience, stratégie, scripts, visuels, déclinaisons, contrôle qualité, rapport. Aucune publication ni dépense sans autorisation.
 - **Micro-logiciel par abonnement** : problème récurrent, **validation de la demande avant d'investir**, prototype, tests, paiement et accès, lancement, support.
 - **Administration** : commande, dossier, devis, échéances, facture, suivi des paiements, archivage. Les paiements et décisions financières restent soumis à validation.
 - **Amélioration continue du système** : voir ci-dessus.

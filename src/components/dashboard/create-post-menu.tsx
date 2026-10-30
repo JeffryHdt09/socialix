@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 // - « À la main » ouvrira l'éditeur de post, qui n'existe qu'au chapitre 13 : on le montre grisé, avec la
 //   mention « bientôt », plutôt que de cacher l'option ou de la laisser mener nulle part.
 export function CreatePostMenu({ variant = "default" }: { variant?: "default" | "outline" }) {
-  const { campaignId } = useParams<{ campaignId: string }>();
+  const { projectId } = useParams<{ projectId: string }>();
 
   return (
     <DropdownMenu>
@@ -24,7 +24,7 @@ export function CreatePostMenu({ variant = "default" }: { variant?: "default" | 
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-64">
         <DropdownMenuItem asChild>
-          <Link href={`/dashboard/${campaignId}/agents`}>
+          <Link href={`/dashboard/${projectId}/agents`}>
             <Sparkles aria-hidden="true" />
             Avec l’équipe IA
           </Link>

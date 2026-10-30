@@ -19,9 +19,9 @@ import { cn } from "@/lib/utils";
 // - ton message s'affiche tout de suite (provisoire), puis est remplacé par les deux vrais messages enregistrés ;
 // - si l'envoi échoue, le message provisoire disparaît, l'erreur est annoncée et ton texte revient dans la saisie.
 // `plans` et `onPlanChange` : les plans du Maître, dont l'état (par exemple « annulé ») est tenu par le parent pour être partagé avec l'onglet Tâches.
-type Props = { agent: Agent; campaignId: string; initialMessages: ChatMessage[]; plans: PlanView[]; onPlanChange: (plan: PlanView) => void; className?: string };
+type Props = { agent: Agent; projectId: string; initialMessages: ChatMessage[]; plans: PlanView[]; onPlanChange: (plan: PlanView) => void; className?: string };
 
-export function AgentChat({ agent, campaignId, initialMessages, plans, onPlanChange, className }: Props) {
+export function AgentChat({ agent, projectId, initialMessages, plans, onPlanChange, className }: Props) {
   const [messages, setMessages] = useState(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -46,7 +46,7 @@ export function AgentChat({ agent, campaignId, initialMessages, plans, onPlanCha
     setMessages((m) => [...m, temp]);
     setDraft("");
     try {
-      const result = await sendMessage(campaignId, agent.id, text);
+      const result = await sendMessage(projectId, agent.id, text);
       if (result.ok) {
         setMessages((m) => [...m.filter((x) => x.id !== temp.id), ...result.messages]);
         if (result.plan) onPlanChange(result.plan); // la carte du plan s'affiche tout de suite sous la réponse du Maître
@@ -103,7 +103,7 @@ export function AgentChat({ agent, campaignId, initialMessages, plans, onPlanCha
                 </time>
                 {m.planId && plans.some((p) => p.id === m.planId) && (
                   <div className="mt-1 w-full">
-                    <PlanCard plan={plans.find((p) => p.id === m.planId)!} campaignId={campaignId} onChange={onPlanChange} />
+                    <PlanCard plan={plans.find((p) => p.id === m.planId)!} projectId={projectId} onChange={onPlanChange} />
                   </div>
                 )}
               </li>

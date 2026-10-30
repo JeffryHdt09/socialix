@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { NewCampaignForm } from "@/components/campaign/new-campaign-form";
+import { NewProjectForm } from "@/components/project/new-project-form";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { verifySession } from "@/lib/dal";
 
-export const metadata: Metadata = { title: "Nouvelle campagne · Socialix" };
+export const metadata: Metadata = { title: "Nouveau projet · Socialix" };
 
-// Création de campagne (PAGES.md, fiche 2). Page privée : sans session valide, redirection vers /sign-in.
-export default function NewCampaignPage() {
+// Création de projet (PAGES.md, fiche 2). Page privée : sans session valide, redirection vers /sign-in.
+export default function NewProjectPage() {
   return (
     <div className="flex min-h-dvh flex-1 flex-col px-4 py-6 sm:px-10">
       <header className="flex items-center justify-between">
@@ -30,7 +30,7 @@ export default function NewCampaignPage() {
 
 async function Form() {
   await verifySession();
-  return <NewCampaignForm />;
+  return <NewProjectForm />;
 }
 
 function FormSkeleton() {

@@ -14,7 +14,8 @@ export type ChatTurn = { role: "user" | "assistant"; content: string };
 
 // Réglages d'un appel : la liste de modèles et la façon d'en fabriquer un. Les deux ont une valeur par défaut ; les tests
 // les remplacent (liste inventée, faux modèle) pour vérifier le comportement sans appeler Gemini ni épuiser le quota.
-export type ModelOptions = { models?: readonly string[]; modelFactory?: (name: string) => LanguageModel };
+// `teams` : les équipes activées du projet. Elles décident de la liste des agents annoncée dans les consignes.
+export type ModelOptions = { models?: readonly string[]; modelFactory?: (name: string) => LanguageModel; teams?: readonly string[] };
 
 // Pourquoi aucun modèle n'a répondu : « quota » (limite gratuite atteinte, réessayer plus tard) ou « unavailable » (panne,
 // clé refusée, modèles retirés…). On ne transmet jamais le texte de l'erreur d'origine : il peut contenir des détails internes.
@@ -67,7 +68,7 @@ export async function askAgent(agent: AgentId, history: ChatTurn[], options: Mod
   const { value, model } = await withModelFallback(models, async (name) => {
     // ToolLoopAgent : la boucle d'agent de l'AI SDK. Sans outil, elle fait un seul tour ; au chapitre 12, on lui
     // donnera des outils (`tools`) sans rien changer d'autre.
-    const bot = new ToolLoopAgent({ id: agent, model: modelFactory(name), instructions: instructionsFor(agent), maxRetries: 1 });
+    const bot = new ToolLoopAgent({ id: agent, model: modelFactory(name), instructions: instructionsFor(agent, options.teams), maxRetries: 1 });
     const result = await bot.generate({ messages: history.slice(-MAX_HISTORY), timeout: 30_000 });
     return result.text.trim() || null; // réponse vide (filtre de sécurité…) : on essaie le suivant
   });

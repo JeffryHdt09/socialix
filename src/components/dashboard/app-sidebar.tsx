@@ -2,36 +2,36 @@
 
 import Link from "next/link";
 
-import { CampaignSwitcher, type CampaignOption } from "@/components/dashboard/campaign-switcher";
+import { ProjectSwitcher, type ProjectOption } from "@/components/dashboard/project-switcher";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SidebarProfile } from "@/components/dashboard/sidebar-profile";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@/components/ui/sidebar";
 
-// Le menu latéral d'une campagne (PAGES.md, fiche 3) : logo et sélecteur en haut, les sept sections,
+// Le menu latéral d'un projet (PAGES.md, fiche 3) : logo et sélecteur en haut, les sept sections,
 // puis l'état de l'équipe et le profil en bas. Replié en icônes par défaut ; le choix est mémorisé.
 export function AppSidebar({
-  campaigns,
+  projects,
   currentId,
   user,
 }: {
-  campaigns: CampaignOption[];
+  projects: ProjectOption[];
   currentId: string;
   user: { name: string; email: string };
 }) {
   return (
     // role + aria-label : toute la barre est un repère « complémentaire » pour les lecteurs d'écran (sans cela, le logo
     // et la carte « Équipe IA » sont hors de tout repère, ce que signale axe-core). Le <nav> des liens est imbriqué dedans.
-    <Sidebar collapsible="icon" role="complementary" aria-label="Menu de la campagne">
+    <Sidebar collapsible="icon" role="complementary" aria-label="Menu du projet">
       <SidebarHeader className="gap-3">
         {/* Replié, le logo disparaît : le médaillon du sélecteur, juste dessous, suffit. */}
         <Link href="/dashboard" className="inline-flex min-h-11 items-center px-3 text-xl font-extrabold tracking-tight group-data-[collapsible=icon]:hidden">
           Socialix
         </Link>
-        <CampaignSwitcher campaigns={campaigns} currentId={currentId} />
+        <ProjectSwitcher projects={projects} currentId={currentId} />
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarNav campaignId={currentId} />
+        <SidebarNav projectId={currentId} />
       </SidebarContent>
 
       <SidebarFooter className="gap-3">

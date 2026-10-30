@@ -50,6 +50,13 @@
       "when": 1793195451291,
       "tag": "0006_messages-plan-link",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793203308035,
+      "tag": "0007_projects",
+      "breakpoints": true
     }
   ]
 }

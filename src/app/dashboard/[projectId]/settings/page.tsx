@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Réglages · Socialix" };
 export default function SettingsPage() {
   return (
     <>
-      <PageHeader title="Réglages" subtitle="La campagne et ses connexions." />
+      <PageHeader title="Réglages" subtitle="Le projet et ses connexions." />
       <ComingSoon chapter="14" what="la clé du service de publication, puis le reste des réglages" />
     </>
   );

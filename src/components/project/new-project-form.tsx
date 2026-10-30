@@ -3,26 +3,29 @@
 import Image from "next/image";
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 
-import { createCampaign, type CreateCampaignState } from "@/app/campaigns/actions";
-import { CampaignAvatar } from "@/components/campaign/campaign-avatar";
-import { IconPicker } from "@/components/campaign/icon-picker";
+import { createProject, type CreateProjectState } from "@/app/projects/actions";
+import { ProjectAvatar } from "@/components/project/project-avatar";
+import { IconPicker } from "@/components/project/icon-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CAMPAIGN_NAME_MAX, campaignSchema, type CampaignIconKey } from "@/lib/campaign-rules";
+import { DEFAULT_TEAMS, TEAMS, type ActiveTeamId } from "@/lib/agents";
+import { PROJECT_NAME_MAX, projectSchema, type ProjectIconKey } from "@/lib/project-rules";
 import { detectLogoFormat, LOGO_ERROR, LOGO_FORMATS, LOGO_MAX_BYTES } from "@/lib/logo-check";
 
 const ACCEPTED_TYPES: string[] = Object.values(LOGO_FORMATS).map((f) => f.contentType);
-const initialState: CreateCampaignState = {};
+const initialState: CreateProjectState = {};
 
-// Formulaire de création de campagne en 2 étapes (PAGES.md, fiche 2).
+// Formulaire de création de projet en 2 étapes (PAGES.md, fiche 2).
 // Les deux étapes restent dans la page (l'inactive est seulement cachée) : tous les champs sont envoyés
 // ensemble à la fin. Les contrôles faits ici ne servent qu'à répondre vite ; le serveur refait tout.
-export function NewCampaignForm() {
-  const [state, formAction, pending] = useActionState(createCampaign, initialState);
+export function NewProjectForm() {
+  const [state, formAction, pending] = useActionState(createProject, initialState);
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
-  const [icon, setIcon] = useState<CampaignIconKey | null>(null);
+  const [icon, setIcon] = useState<ProjectIconKey | null>(null);
+  const [teams, setTeams] = useState<ActiveTeamId[]>(DEFAULT_TEAMS);
+  const [teamsError, setTeamsError] = useState<string>();
   const [preview, setPreview] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string>();
   const [logoError, setLogoError] = useState<string>();
@@ -36,7 +39,7 @@ export function NewCampaignForm() {
   if (state !== seenState) {
     setSeenState(state);
     const errors = state.fieldErrors;
-    if (errors?.name || errors?.icon || errors?.logo) setStep(1);
+    if (errors?.name || errors?.icon || errors?.logo || errors?.teams) setStep(1);
   }
 
   // Au changement d'étape, le titre reçoit le focus : un lecteur d'écran annonce la nouvelle étape,
@@ -80,17 +83,21 @@ export function NewCampaignForm() {
     setIcon(null); // logo téléversé et icône sont exclusifs
   }
 
-  function pickIcon(key: CampaignIconKey) {
+  function pickIcon(key: ProjectIconKey) {
     setIcon(key);
     setLogoError(undefined);
     clearLogo();
   }
 
   function goNext() {
-    // Mêmes règles que le serveur : celles de campaign-rules.ts.
-    const result = campaignSchema.shape.name.safeParse(name);
+    // Mêmes règles que le serveur : celles de project-rules.ts.
+    const result = projectSchema.shape.name.safeParse(name);
     if (!result.success) {
       setNameError(result.error.issues[0].message);
+      return;
+    }
+    if (teams.length === 0) {
+      setTeamsError("Choisis au moins un domaine.");
       return;
     }
     setNameError(undefined);
@@ -108,6 +115,12 @@ export function NewCampaignForm() {
 
   const shownNameError = nameError ?? state.fieldErrors?.name;
   const shownLogoError = logoError ?? state.fieldErrors?.logo;
+  const shownTeamsError = teamsError ?? state.fieldErrors?.teams;
+
+  function toggleTeam(id: ActiveTeamId, checked: boolean) {
+    setTeamsError(undefined);
+    setTeams((all) => (checked ? [...all.filter((t) => t !== id), id] : all.filter((t) => t !== id)));
+  }
 
   return (
     <section className="w-full max-w-xl rounded-xl border border-border bg-card p-6 sm:p-8">
@@ -132,11 +145,11 @@ export function NewCampaignForm() {
       </ol>
 
       <h1 ref={headingRef} tabIndex={-1} className="mt-6 text-[28px] font-bold tracking-tight outline-none">
-        {step === 1 ? "Nouvelle campagne" : "Choisis ton bureau"}
+        {step === 1 ? "Nouveau projet" : "Choisis ton bureau"}
       </h1>
       <p className="mt-1 text-[15px] text-muted-foreground">
         {step === 1
-          ? "Une campagne, c’est un espace de travail pour une marque ou un client."
+          ? "Un projet, c’est un espace de travail pour une marque ou un client."
           : "C’est là que travaillent tes agents. Tu pourras le changer plus tard."}
       </p>
 
@@ -147,9 +160,9 @@ export function NewCampaignForm() {
         <div hidden={step !== 1}>
           <div className="flex flex-col gap-6">
             <div className="flex items-end gap-4">
-              <CampaignAvatar name={name} iconKey={icon} imageUrl={preview} />
+              <ProjectAvatar name={name} iconKey={icon} imageUrl={preview} />
               <div className="flex flex-1 flex-col gap-2">
-                <Label htmlFor="name">Nom de la campagne</Label>
+                <Label htmlFor="name">Nom du projet</Label>
                 <Input
                   id="name"
                   name="name"
@@ -158,7 +171,7 @@ export function NewCampaignForm() {
                     setName(e.target.value);
                     setNameError(undefined);
                   }}
-                  maxLength={CAMPAIGN_NAME_MAX}
+                  maxLength={PROJECT_NAME_MAX}
                   autoComplete="off"
                   required
                   aria-invalid={shownNameError ? true : undefined}
@@ -202,6 +215,38 @@ export function NewCampaignForm() {
               <p className={`text-[13px] ${shownLogoError ? "font-medium text-destructive" : "text-muted-foreground"}`} role={shownLogoError ? "alert" : undefined}>
                 {shownLogoError ?? LOGO_ERROR}
               </p>
+            </fieldset>
+
+            {/* Les domaines : chacun apporte ses agents au projet (src/lib/agents.ts). Le Maître et Recherche sont toujours là. */}
+            <fieldset className="flex flex-col gap-3" aria-describedby={shownTeamsError ? "teams-error" : undefined}>
+              <legend className="text-[13px] font-medium">Domaines du projet</legend>
+              <p className="text-[13px] text-muted-foreground">Chaque domaine apporte ses agents. Tu pourras en ajouter plus tard.</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {TEAMS.map((team) => (
+                  <label
+                    key={team.id}
+                    className="flex cursor-pointer gap-3 rounded-lg border border-border p-3 has-checked:border-foreground has-checked:bg-card has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring"
+                  >
+                    <input
+                      type="checkbox"
+                      name="teams"
+                      value={team.id}
+                      checked={teams.includes(team.id)}
+                      onChange={(e) => toggleTeam(team.id, e.target.checked)}
+                      className="mt-1 size-4 accent-foreground"
+                    />
+                    <span>
+                      <span className="block text-[15px] font-semibold">{team.name}</span>
+                      <span className="block text-[13px] text-muted-foreground">{team.description}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {shownTeamsError && (
+                <p id="teams-error" role="alert" className="text-[13px] font-medium text-destructive">
+                  {shownTeamsError}
+                </p>
+              )}
             </fieldset>
           </div>
         </div>
@@ -268,7 +313,7 @@ export function NewCampaignForm() {
             </Button>
           ) : (
             <Button key="submit" type="submit" disabled={pending}>
-              {pending ? "Création…" : "Créer la campagne"}
+              {pending ? "Création…" : "Créer le projet"}
             </Button>
           )}
         </div>
