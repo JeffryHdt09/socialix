@@ -55,7 +55,7 @@ Deux outils **locaux** (sur la machine de l'auteur) :
 - **Studio 360** : un logiciel de montage vidéo tout-en-un, **fork de HyperFrames** (Apache 2.0) avec nos extensions (relecture, storyboard, générateurs, montage de rushes, musique, kits de marque, zones de sécurité). Il expose un **serveur MCP `studio-360` de 56 outils** (projets, marques, contrôle qualité, relecture et versions, storyboard, génération Flow, montage, musique…) que Claude Code pilote.
 - **Flow MCP** : un programme qui ouvre une fenêtre Chrome à part, s'y connecte à Google Flow avec un compte Google personnel et clique les vrais boutons pour générer images et courtes vidéos, avec les crédits d'un abonnement Google AI (sans l'API payante). Studio 360 s'en sert pour ses outils `generate_image` et `generate_clip`.
 
-**Exception encadrée, pas une règle de Socialix.** Flow MCP pilote un navigateur, ce que les garde-fous ci-dessous interdisent aux agents de Socialix. Il reste donc **hors du code de Socialix** : un outil de l'auteur, lancé à la main sur sa machine, pour ses propres projets. Aucun agent hébergé, aucun projet de client ne s'en sert.
+**Contexte externe à Socialix.** Flow MCP pilote un navigateur, ce que les garde-fous ci-dessous interdisent aux agents. Il reste donc hors du code de Socialix : les agents hébergés et les projets de clients ne l'utilisent pas.
 
 **Ce que cela implique pour Socialix**
 - Le domaine **montage vidéo** ne peut tourner que **sur la machine de l'auteur** : Flow MCP a besoin d'un Chrome réel et d'un écran allumé, et il automatise l'interface web de Flow (zone grise des conditions d'utilisation de Google, risque limité à un compte personnel, jamais celui d'un client).
