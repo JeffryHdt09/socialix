@@ -34,7 +34,7 @@
 
 **États :** chargement sur le bouton cliqué (texte « Connexion… », bouton désactivé) · erreur « E-mail ou mot de passe incorrect » sous le formulaire · e-mail déjà utilisé à l'inscription · échec Google (« La connexion avec Google a échoué, réessaie »).
 
-**Après connexion :** aucun projet → `/projects/new` ; sinon → vue d'ensemble de la dernière projet ouverte.
+**Après connexion :** aucun projet → `/projects/new` ; sinon → vue d'ensemble du dernier projet ouvert.
 
 ---
 
@@ -46,15 +46,15 @@
 - **Étape 1 · Identité** : nom du projet (obligatoire), logo : choisir parmi quelques icônes proposées **ou** téléverser une image (PNG, JPG ou WebP, 3 Mo max), avec aperçu immédiat. Bouton « Continuer ».
 - **Étape 2 · Bureau** : deux grandes vignettes cliquables, **Atelier bois** et **Bureau moderne**, avec un aperçu des agents en place. Boutons « Retour » et **Créer le projet**.
 
-**États :** nom vide (message sous le champ) · fichier trop lourd ou mauvais format (« 3 Mo maximum, PNG, JPG ou WebP ») · téléversement en cours (barre fine) · création en cours · erreur serveur (« Le projet n'a pas pu être créée, réessaie »).
+**États :** nom vide (message sous le champ) · fichier trop lourd ou mauvais format (« 3 Mo maximum, PNG, JPG ou WebP ») · téléversement en cours (barre fine) · création en cours · erreur serveur (« Le projet n'a pas pu être créé, réessaie »).
 
-**Après création :** vue d'ensemble de la nouveau projet.
+**Après création :** vue d'ensemble du nouveau projet.
 
 ---
 
 ## 3. Cadre commun : menu et en-tête · ch. 6
 
-**Rôle :** naviguer et garder le contexte (quelle projet, que faut-il faire).
+**Rôle :** naviguer et garder le contexte (quel projet, que faut-il faire).
 
 **Menu latéral :**
 - **Replié par défaut** (icônes seules, info-bulle au survol), dépliable par un bouton. Le choix est mémorisé.

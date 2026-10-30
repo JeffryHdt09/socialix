@@ -18,9 +18,14 @@ const GOOGLE_MODELS = ["google:gemini-2.5-flash", "google:gemini-3.5-flash"];
 // et on passe simplement au suivant. Pour des modèles payants plus puissants, on les écrit ici AVANT les gratuits.
 const DEFAULT_OPENROUTER_MODELS = ["google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free", "nvidia/nemotron-3-ultra-550b-a55b:free"];
 
+// Règle D9 : aucune donnée client sur un modèle gratuit (ils peuvent journaliser les requêtes). Les modèles « :free » ne
+// servent donc qu'en développement, ou en production sur accord explicite (OPENROUTER_ALLOW_FREE=1). Sans accord, en
+// production, la liste par défaut est vide et les modèles gratuits écrits dans OPENROUTER_MODELS sont ignorés.
 export function openRouterModels(env: NodeJS.ProcessEnv = process.env): string[] {
+  const allowFree = env.OPENROUTER_ALLOW_FREE === "1" || env.NODE_ENV !== "production";
   const custom = env.OPENROUTER_MODELS?.split(",").map((m) => m.trim()).filter(Boolean);
-  return (custom && custom.length > 0 ? custom : DEFAULT_OPENROUTER_MODELS).map((m) => `openrouter:${m}`);
+  const list = custom && custom.length > 0 ? custom : allowFree ? DEFAULT_OPENROUTER_MODELS : [];
+  return list.filter((m) => allowFree || !m.endsWith(":free")).map((m) => `openrouter:${m}`);
 }
 
 // La liste complète. OpenRouter n'y figure que si sa clé est présente : sans clé, on ne perd pas de temps à l'appeler.
