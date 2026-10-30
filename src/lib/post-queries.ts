@@ -6,7 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { posts } from "@/db/schema";
 import { getOwnedProject } from "@/lib/ownership";
-import { isPlatform, type PostErrors, type PostInput, scheduleErrors, validatePost } from "@/lib/post-rules";
+import { isPlatform, type PostErrors, type PostInput, scheduleErrors, validatePost, type ValidPost } from "@/lib/post-rules";
 import { agentImageUrl, isAgentImageKeyFor, projectImageKeyFromUrl } from "@/lib/storage";
 
 // Lire, créer, modifier et changer l'état des posts d'un projet (chapitre 13). Comme partout : le propriétaire (`userId`) vient de
@@ -91,7 +91,12 @@ export type SavePostResult = { ok: true; id: string; status: PostStatus } | { ok
 // Enregistre un post du formulaire : « draft » = brouillon, « schedule » = programmé. `postId` null = nouveau post.
 // Tout est revérifié ici (le formulaire peut mentir) : les champs par validatePost, l'image (elle doit venir de NOTRE stockage et de
 // CE projet : une adresse écrite à la main est refusée), le projet, l'état du post (un post publié ne se modifie plus).
-export async function savePostAs(userId: string, projectId: string, postId: string | null, input: PostInput, mode: "draft" | "schedule", now: Date = new Date()): Promise<SavePostResult> {
+// Tout ce qui peut refuser une sauvegarde, SANS rien écrire. Séparé de savePostAs pour la publication (chapitre 14) : avant de retirer
+// un post de chez le service de publication, on veut être certain que la sauvegarde qui suit passera, sinon le post resterait
+// « programmé » chez nous alors qu'il a disparu chez eux et ne partirait jamais.
+export type PreparedSave = { ok: true; data: ValidPost; status: PostStatus } | { ok: false; errors?: PostErrors; error?: string };
+
+export async function prepareSave(userId: string, projectId: string, postId: string | null, input: PostInput, mode: "draft" | "schedule", now: Date = new Date()): Promise<PreparedSave> {
   if (!(await getOwnedProject(userId, projectId))) return { ok: false, error: "Projet introuvable." };
   if (postId !== null && !isUuid(postId)) return { ok: false, error: "Post introuvable." };
 
@@ -110,8 +115,19 @@ export async function savePostAs(userId: string, projectId: string, postId: stri
 
   const check = validatePost({ ...input, imageUrl }, mode, now);
   if (!check.ok) return { ok: false, errors: check.errors };
-  const d = check.data;
   const status: PostStatus = mode === "schedule" ? "scheduled" : "draft";
+  if (postId !== null) {
+    // Un post publié ne se modifie plus ; un post d'un autre projet n'existe pas pour nous
+    const [current] = await db.select({ status: posts.status }).from(posts).where(and(eq(posts.id, postId), eq(posts.projectId, projectId))).limit(1);
+    if (!current || current.status === "published") return { ok: false, error: "Ce post est introuvable ou déjà publié : il ne peut plus être modifié." };
+  }
+  return { ok: true, data: check.data, status };
+}
+
+export async function savePostAs(userId: string, projectId: string, postId: string | null, input: PostInput, mode: "draft" | "schedule", now: Date = new Date()): Promise<SavePostResult> {
+  const prepared = await prepareSave(userId, projectId, postId, input, mode, now);
+  if (!prepared.ok) return prepared;
+  const { data: d, status } = prepared;
 
   if (postId === null) {
     const created = await insertPostWithinCap(projectId, { title: d.title, caption: d.caption, hashtags: d.hashtags, platforms: d.platforms, imageUrl: d.imageUrl, scheduledAt: d.scheduledAt, status, createdBy: "user" });
@@ -129,7 +145,7 @@ export async function savePostAs(userId: string, projectId: string, postId: stri
 }
 
 // `code` : pourquoi l'action a échoué, en mot court. La page Posts l'affiche avec un texte FIXE (jamais un texte venu de l'adresse).
-export type ActionFailureCode = "etat" | "limite" | "introuvable";
+export type ActionFailureCode = "etat" | "limite" | "introuvable" | "publication" | "compte";
 export type ActionResult = { ok: true } | { ok: false; error: string; code?: ActionFailureCode; needsEditor?: boolean };
 
 // « Valider » un post à valider : s'il a déjà tout ce qu'il faut pour partir (légende, réseau, image si le réseau l'exige, date au
@@ -146,6 +162,12 @@ export async function validatePostAs(userId: string, projectId: string, postId: 
     .where(and(eq(posts.id, postId), eq(posts.projectId, projectId), eq(posts.status, "to_review")))
     .returning({ id: posts.id });
   return updated.length > 0 ? { ok: true } : { ok: false, error: "Ce post a déjà changé d'état.", code: "etat" };
+}
+
+// Remet un post « programmé » dans l'état d'où il vient quand le service de publication l'a refusé (chapitre 14) : « brouillon » après
+// une sauvegarde, « à valider » après un « Valider ». Sans effet si le post a changé d'état entre-temps.
+export async function revertScheduledPost(projectId: string, postId: string, to: "draft" | "to_review"): Promise<void> {
+  await db.update(posts).set({ status: to }).where(and(eq(posts.id, postId), eq(posts.projectId, projectId), eq(posts.status, "scheduled")));
 }
 
 // « Déprogrammer » : un post programmé redevient brouillon (sa date reste affichée dans l'éditeur, rien n'est perdu).

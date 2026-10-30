@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 
 import { getSession } from "@/lib/dal";
 import { readLogoFile } from "@/lib/logo-upload";
-import { type ActionResult, deletePostAs, duplicatePostAs, isUuid, savePostAs, type SavePostResult, unschedulePostAs, validatePostAs } from "@/lib/post-queries";
+import { type ActionResult, duplicatePostAs, isUuid, type SavePostResult } from "@/lib/post-queries";
 import type { PostInput } from "@/lib/post-rules";
+import { deleteAndCancel, savePostAndPublish, unscheduleAndCancel, validateAndPublish } from "@/lib/publishing";
 import { getOwnedProject } from "@/lib/ownership";
 import { imagekitConfig, retouchImage } from "@/lib/imagekit";
 import { allowRetouch, allowUpload } from "@/lib/retouch-limit";
@@ -40,7 +41,7 @@ async function authorized(projectId: unknown, postId: unknown): Promise<{ userId
 export async function validatePostAction(projectId: string, postId: string): Promise<void> {
   const a = await authorized(projectId, postId);
   if (!a) return;
-  const result = await validatePostAs(a.userId, a.projectId, a.postId);
+  const result = await validateAndPublish(a.userId, a.projectId, a.postId); // programme chez le service de publication, ou remet le post comme avant
   refresh(a.projectId);
   // Il manque quelque chose pour partir : on ouvre l'éditeur plutôt que de laisser la personne devant un bouton muet
   if (!result.ok && result.needsEditor) redirect(`${postsPath(a.projectId)}/${a.postId}?programmer=1`);
@@ -50,7 +51,7 @@ export async function validatePostAction(projectId: string, postId: string): Pro
 export async function unschedulePostAction(projectId: string, postId: string): Promise<void> {
   const a = await authorized(projectId, postId);
   if (!a) return;
-  const result = await unschedulePostAs(a.userId, a.projectId, a.postId);
+  const result = await unscheduleAndCancel(a.userId, a.projectId, a.postId); // annule d'abord chez le service : s'il refuse, le post reste programmé
   refresh(a.projectId);
   failed(a.projectId, result);
 }
@@ -67,7 +68,7 @@ export async function duplicatePostAction(projectId: string, postId: string): Pr
 export async function deletePostAction(projectId: string, postId: string): Promise<void> {
   const a = await authorized(projectId, postId);
   if (!a) return;
-  const result = await deletePostAs(a.userId, a.projectId, a.postId);
+  const result = await deleteAndCancel(a.userId, a.projectId, a.postId); // annule d'abord chez le service : s'il refuse, le post reste
   refresh(a.projectId);
   failed(a.projectId, result);
 }
@@ -90,7 +91,8 @@ export async function savePostAction(projectId: string, postId: string | null, i
     day: typeof input.day === "string" ? input.day : "",
     time: typeof input.time === "string" ? input.time : "",
   };
-  const result = await savePostAs(session.user.id, projectId, postId, clean, mode);
+  // Programmer envoie le post au service de publication ; enregistrer en brouillon le retire du service s'il y était
+  const result = await savePostAndPublish(session.user.id, projectId, postId, clean, mode);
   if (result.ok) refresh(projectId);
   return result;
 }

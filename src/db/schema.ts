@@ -93,6 +93,76 @@ export const posts = pgTable(
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
 
+// ── Chapitre 14 : la publication ─────────────────────────────────────────────────────────────────────────────────────
+// Les comptes (Instagram, Page Facebook, Bluesky…) se connectent chez le service de publication (Buffer, décision D5), pas chez nous.
+// Ici on retient seulement QUEL compte du service sert à QUEL réseau d'UN projet : la clé du service reste dans .env.local.
+export const socialAccounts = pgTable(
+  "social_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    // Le service qui porte ce compte (« buffer »). Une colonne plutôt qu'une supposition : changer de service plus tard est possible.
+    provider: text("provider").notNull().default("buffer"),
+    // L'identifiant du compte chez le service, et son nom affiché (copié à la liaison : rafraîchi à chaque affichage de la page).
+    channelId: text("channel_id").notNull(),
+    // Notre réseau (« instagram », « x »…, voir PLATFORMS dans post-rules.ts).
+    platform: text("platform").notNull(),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    // UN compte par réseau et par projet : un post qui vise « instagram » sait ainsi sans ambiguïté lequel utiliser.
+    uniqueIndex("social_accounts_project_platform_idx").on(table.projectId, table.platform),
+    check("social_accounts_platform_length", sql`char_length(btrim(${table.platform})) between 1 and 20`),
+    check("social_accounts_channel_length", sql`char_length(btrim(${table.channelId})) between 1 and 200`),
+    check("social_accounts_name_length", sql`char_length(btrim(${table.name})) between 1 and 200`),
+  ],
+).enableRLS();
+
+export const deliveryStatusEnum = pgEnum("delivery_status", ["scheduled", "sent", "failed"]);
+
+// Un ENVOI : « ce post, sur ce compte, est programmé chez le service sous cet identifiant ». Un post visant trois réseaux a trois
+// envois. Sans cette table, on ne saurait plus quoi annuler chez le service quand on déprogramme ou supprime un post.
+export const postDeliveries = pgTable(
+  "post_deliveries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    // Pas de suppression en cascade vers le compte : un compte qui porte des envois programmés ne se retire pas (voir unlinkAccount).
+    socialAccountId: uuid("social_account_id")
+      .notNull()
+      .references(() => socialAccounts.id),
+    // L'identifiant du post chez le service (nécessaire pour l'annuler ou lire son état).
+    externalId: text("external_id").notNull(),
+    status: deliveryStatusEnum("status").notNull().default("scheduled"),
+    dueAt: timestamp("due_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    // Adresse du post publié chez le réseau, quand le service la donne.
+    link: text("link"),
+    // Pourquoi l'envoi a échoué, tel que le réseau le dit (texte court, jamais le texte du post).
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("post_deliveries_post_account_idx").on(table.postId, table.socialAccountId),
+    index("post_deliveries_account_idx").on(table.socialAccountId),
+    // La synchronisation cherche les envois « programmés » dont l'heure est venue.
+    index("post_deliveries_status_due_idx").on(table.status, table.dueAt),
+    check("post_deliveries_external_length", sql`char_length(btrim(${table.externalId})) between 1 and 200`),
+  ],
+).enableRLS();
+
+export type SocialAccount = typeof socialAccounts.$inferSelect;
+export type PostDelivery = typeof postDeliveries.$inferSelect;
+
 // Qui parle dans une conversation : la personne (`user`) ou l'agent (`assistant`).
 export const messageRoleEnum = pgEnum("message_role", ["user", "assistant"]);
 

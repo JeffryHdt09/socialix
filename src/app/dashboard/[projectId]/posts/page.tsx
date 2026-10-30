@@ -27,6 +27,8 @@ const ERRORS: Record<string, string> = {
   etat: "Ce post a changé entre-temps (autre onglet, déjà traité ou publié). La liste est à jour : vérifie son état avant de recommencer.",
   limite: "Ce projet a atteint la limite de 500 posts. Supprime-en avant d’en dupliquer ou d’en créer.",
   introuvable: "Ce post est introuvable : il a peut-être été supprimé.",
+  publication: "Le service de publication n’a pas répondu ou a refusé. Rien n’a été modifié : réessaie dans un instant.",
+  compte: "Aucun compte n’est lié à ce projet pour l’un des réseaux de ce post. Ajoute-le dans « Comptes », ou retire ce réseau du post.",
 };
 
 export default function PostsPage({ params, searchParams }: PageProps<"/dashboard/[projectId]/posts">) {
