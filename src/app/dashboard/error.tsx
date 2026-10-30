@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 export default function DashboardError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-start justify-center gap-4 px-4 py-10 sm:px-10">
-      <h1 className="text-[28px] font-bold tracking-tight">Tes projets n’ont pas pu être chargées</h1>
+      <h1 className="text-[28px] font-bold tracking-tight">Tes projets n’ont pas pu être chargés</h1>
       <p className="text-[15px] text-muted-foreground">
         Le problème vient de notre côté ou de ta connexion. Réessaie dans un instant.
       </p>

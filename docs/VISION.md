@@ -35,34 +35,30 @@ Chaque domaine couvre **toute sa chaîne**, du besoin au résultat.
 | Domaine | Chaîne d'agents | État |
 |---|---|---|
 | **Marketing digital** | recherche de marché → stratégie → création → planification → analyse | Présent (Maître, Recherche, Créateur, Planificateur, Analytique), sans outils |
-| **Prospection** | qualification → proposition → suivi (veille et analyse viendront avec les outils) | Présent depuis le 28/10 (Qualificateur, Propositions, Suivi), sans outils. Premier domaine hors marketing : il sert d'abord le projet d'audio-description de l'utilisateur |
+| **Prospection** | qualification → proposition → suivi (veille et analyse viendront avec les outils) | Présent depuis le 28/10 (Qualificateur, Propositions, Suivi), sans outils. Premier domaine hors marketing |
 | **Montage vidéo** | scénario → découpage → prompts → montage → déclinaisons | À faire, relié à Video Studio (voir plus bas) |
 | **Produits digitaux** | problème du marché → solution → offre → système de vente | À faire ; la validation de la demande passe avant tout investissement |
 
 L'agent Recherche (commun) sert la recherche de marché des trois derniers domaines.
 
-**Projet d'audio-description de l'utilisateur** : il le mène **à la main d'abord**, pour apprendre le marché et gagner un premier client ; les agents prendront le relais ensuite, sur un travail qu'il connaît. Il n'y a donc pas d'équipe « audio-description » pour l'instant.
-
-## Contraintes données par l'utilisateur (questionnaire de la conversation du 27-28/10/2026)
+## Principes retenus
 
 - Construction **hybride** : orchestrer d'un côté, coder les parties complexes de l'autre.
-- Priorité numéro un : **revenus le plus vite possible**.
-- Budget : **faible, seulement pour les outils** (le quota gratuit de Gemini est donc une contrainte réelle : plafond de jetons par personne, au chapitre 11).
+- Budget maîtrisé : le quota gratuit des modèles est une contrainte réelle (plafond de jetons par personne, au chapitre 11).
 - Autonomie : **les agents préparent, la personne valide les actions sensibles**.
-- Temps disponible : environ 10 heures par semaine.
 - Règle de calcul : tout ce qui est déterministe (facture, total, date) se fait par une fonction classique testée, jamais par le modèle.
 
 ## Studio 360 et Flow MCP (le montage vidéo)
 
-Deux outils de l'utilisateur, tous deux **locaux** (sur sa machine) :
+Deux outils **locaux** (sur la machine de l'auteur) :
 
-- **Studio 360** (`C:UsersLENOVOstudio-360`) : un logiciel de montage vidéo tout-en-un, **fork de HyperFrames** (Apache 2.0) avec nos extensions (relecture, storyboard, générateurs, montage de rushes, musique, kits de marque, zones de sécurité). Il expose un **serveur MCP `studio-360` de 56 outils** (projets, marques, contrôle qualité, relecture et versions, storyboard, génération Flow, montage, musique…) que Claude Code pilote.
-- **Flow MCP** (`C:devlow-mcp`) : un programme qui ouvre une fenêtre Chrome à part, s'y connecte à Google Flow avec le compte de l'utilisateur et clique les vrais boutons pour générer images et courtes vidéos, avec les crédits de son abonnement Google AI (sans l'API payante). Studio 360 s'en sert pour ses outils `generate_image` et `generate_clip`.
+- **Studio 360** : un logiciel de montage vidéo tout-en-un, **fork de HyperFrames** (Apache 2.0) avec nos extensions (relecture, storyboard, générateurs, montage de rushes, musique, kits de marque, zones de sécurité). Il expose un **serveur MCP `studio-360` de 56 outils** (projets, marques, contrôle qualité, relecture et versions, storyboard, génération Flow, montage, musique…) que Claude Code pilote.
+- **Flow MCP** : un programme qui ouvre une fenêtre Chrome à part, s'y connecte à Google Flow avec un compte Google personnel et clique les vrais boutons pour générer images et courtes vidéos, avec les crédits d'un abonnement Google AI (sans l'API payante). Studio 360 s'en sert pour ses outils `generate_image` et `generate_clip`.
 
-(`C:devideo-studio` est un autre outil, plus ancien : un studio en ligne de commande à moteurs interchangeables. Ce n'est pas Studio 360.)
+**Contexte externe à Socialix.** Flow MCP pilote un navigateur, ce que les garde-fous ci-dessous interdisent aux agents. Il reste donc hors du code de Socialix : les agents hébergés et les projets de clients ne l'utilisent pas.
 
 **Ce que cela implique pour Socialix**
-- Le domaine **montage vidéo** ne peut tourner que **sur la machine de l'utilisateur** : Flow MCP a besoin d'un Chrome réel et d'un écran allumé, et il automatise l'interface web de Flow (zone grise des conditions d'utilisation de Google, risque accepté par l'utilisateur pour **son** compte, jamais pour celui d'un client).
+- Le domaine **montage vidéo** ne peut tourner que **sur la machine de l'auteur** : Flow MCP a besoin d'un Chrome réel et d'un écran allumé, et il automatise l'interface web de Flow (zone grise des conditions d'utilisation de Google, risque limité à un compte personnel, jamais celui d'un client).
 - Piste d'intégration (chapitre 12) : un agent « Monteur » qui appelle les outils MCP de Studio 360 depuis l'application lancée en local (le SDK que nous utilisons sait se connecter à un serveur MCP). Une génération Flow qui dépense des crédits attend toujours l'accord explicite de la personne : c'est déjà la règle de Studio 360.
 - Pour des clients hébergés, il faudrait un autre moteur de génération (API officielle) : décision à prendre à ce moment-là, pas maintenant.
 - Pas avant le chapitre 12, et avant cela, la prospection et le marketing donnent des revenus sans dépendre de ces outils.
@@ -72,7 +68,7 @@ Deux outils de l'utilisateur, tous deux **locaux** (sur sa machine) :
 - **Idée → logiciel** : analyse, recherche, architecture, développement par petites fonctionnalités, tests, documentation. Points de contrôle : architecture, tests, mise en production.
 - **Trouver des clients** : veille des besoins, qualification, estimation, proposition personnalisée, suivi, mesure des résultats. Une proposition précise à un problème précis, pas des envois en masse.
 - **Service audio** : un fichier déposé → vérification, transcription, correction, traduction, sous-titres (SRT/VTT), voix de synthèse, contrôle qualité, dossier de livraison.
-- **Projet marketing complète** : brief, audience, stratégie, scripts, visuels, déclinaisons, contrôle qualité, rapport. Aucune publication ni dépense sans autorisation.
+- **Projet marketing complet** : brief, audience, stratégie, scripts, visuels, déclinaisons, contrôle qualité, rapport. Aucune publication ni dépense sans autorisation.
 - **Micro-logiciel par abonnement** : problème récurrent, **validation de la demande avant d'investir**, prototype, tests, paiement et accès, lancement, support.
 - **Administration** : commande, dossier, devis, échéances, facture, suivi des paiements, archivage. Les paiements et décisions financières restent soumis à validation.
 - **Amélioration continue du système** : voir ci-dessus.

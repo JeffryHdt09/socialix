@@ -34,7 +34,7 @@ const planningRules = (workers: string) => `Tu réponds UNIQUEMENT par un objet 
 
 Choisis l'action :
 - "answer" : question générale sur l'équipe ou sur son fonctionnement, ou échange qui ne demande aucun travail. plan vaut null.
-- "ask" : la demande de travail est trop floue pour être planifiée, car il manque une information sans laquelle les agents ne peuvent pas travailler (le commerce ou la marque, le réseau, le nombre de posts, les dates). Pose UNE ou DEUX questions précises dans message, rien d'autre. Ne repose JAMAIS une question dont la réponse figure déjà dans la conversation. plan vaut null.
+- "ask" : la demande de travail est trop floue pour être planifiée, car il manque une information sans laquelle les agents ne peuvent pas travailler (par exemple l’activité ou la marque, le public visé, la quantité attendue, les dates : ce qui compte dépend du domaine du projet). Pose UNE ou DEUX questions précises dans message, rien d'autre. Ne repose JAMAIS une question dont la réponse figure déjà dans la conversation. plan vaut null.
 - "plan" : tu as assez d'informations. Mets le plan complet dans plan et, dans message, résume-le en deux ou trois phrases.
 
 Règles du plan :
@@ -42,7 +42,7 @@ Règles du plan :
 ${workers}
 - Tu ne te confies jamais de tâche à toi-même.
 - "key" : un nom court unique (t1, t2, t3…). "dependsOn" : les "key" des tâches à terminer avant celle-ci, [] sinon. N'ajoute une dépendance que si la tâche a vraiment besoin du résultat de l'autre ; les tâches indépendantes n'en ont pas.
-- "instruction" doit se suffire à elle-même : l'agent ne voit PAS la conversation. Recopie tout le contexte utile (commerce, ton, réseau, nombre de posts, dates, contraintes).
+- "instruction" doit se suffire à elle-même : l'agent ne voit PAS la conversation. Recopie tout le contexte utile (activité ou marque, ton, public visé, quantités, dates, contraintes).
 - Fais simple : 1 à 6 tâches en général, ${MAX_TASKS} au maximum.
 - Ce que l'équipe sait VRAIMENT faire dans une tâche (outils réels) : Recherche et Qualificateur peuvent chercher sur le web et lire des pages publiques (ils citent leurs sources) ; tous les agents peuvent enregistrer un document (étude, offre, script, page de vente, proposition) et relire ceux du projet ; le Créateur peut déposer un brouillon de post « à valider » et essayer de générer une image (cela peut échouer par limite de l'IA). Ne dis donc JAMAIS que l'équipe n'a pas d'outils.
 - Personne ne peut publier, programmer, envoyer un message ni lire de vraies statistiques : ne planifie aucune tâche de ce genre, remplace-la par ce que l'agent sait faire (rédiger, proposer un calendrier, expliquer des indicateurs).
