@@ -138,7 +138,7 @@ export async function validatePostAs(userId: string, projectId: string, postId: 
   const post = await getPostAs(userId, projectId, postId);
   if (!post) return { ok: false, error: "Post introuvable.", code: "introuvable" };
   if (post.status !== "to_review") return { ok: false, error: "Ce post n'est pas à valider.", code: "etat" };
-  const missing = scheduleErrors({ caption: post.caption, platforms: post.platforms.filter(isPlatform), imageUrl: post.imageUrl, scheduledAt: post.scheduledAt }, now);
+  const missing = scheduleErrors({ caption: post.caption, hashtags: post.hashtags, platforms: post.platforms.filter(isPlatform), imageUrl: post.imageUrl, scheduledAt: post.scheduledAt }, now);
   if (Object.keys(missing).length > 0) return { ok: false, error: "Il manque des informations (date, réseau, légende ou image) : complète le post dans l'éditeur.", needsEditor: true };
   const updated = await db
     .update(posts)
