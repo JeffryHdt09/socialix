@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import postgres from "postgres";
 
+import { fakePublisher } from "./lib/fake-publisher.mjs";
 import { createLoader } from "./lib/load-ts.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -25,51 +26,6 @@ const check = (name, cond, detail) => {
   else ko++;
   console.log(cond ? "OK " : "KO ", name, cond || detail === undefined ? "" : `\n     ${detail}`);
 };
-
-// ---- un faux service de publication : tout est en mémoire, et on peut le faire échouer à la demande
-function fakePublisher() {
-  const s = {
-    live: new Map(), // les posts « programmés chez le service » : identifiant -> payload
-    scheduleCalls: 0,
-    cancelCalls: 0,
-    failSchedule: new Set(), // réseaux que le service refuse
-    failCancel: false,
-    failList: false,
-    seq: 0,
-    channels: [
-      { id: "b1", name: "moi.bsky.social", service: "bluesky", platform: "bluesky", disconnected: false, locked: false },
-      { id: "b2", name: "autre.bsky.social", service: "bluesky", platform: "bluesky", disconnected: false, locked: false },
-      { id: "x1", name: "@moi", service: "twitter", platform: "x", disconnected: false, locked: false },
-      { id: "i1", name: "moi_insta", service: "instagram", platform: "instagram", disconnected: false, locked: false },
-      { id: "i2", name: "autre_insta", service: "instagram", platform: "instagram", disconnected: false, locked: false },
-      { id: "f1", name: "Ma Page", service: "facebook", platform: "facebook", disconnected: true, locked: false },
-      { id: "l1", name: "Mon profil", service: "linkedin", platform: "linkedin", disconnected: false, locked: true },
-      { id: "m1", name: "mastodon", service: "mastodon", platform: null, disconnected: false, locked: false },
-    ],
-  };
-  const pub = {
-    name: "fake",
-    async listChannels() {
-      return s.failList ? { ok: false, reason: "unavailable", message: "Le service de publication ne répond pas. Réessaie dans un instant." } : { ok: true, channels: s.channels };
-    },
-    async schedule(p) {
-      s.scheduleCalls++;
-      if (s.failSchedule.has(p.platform)) return { ok: false, reason: "invalid", message: "Le service de publication a refusé ce post.", detail: "refusé par le test" };
-      const id = `ext-${++s.seq}`;
-      s.live.set(id, p);
-      return { ok: true, externalId: id, dueAt: p.dueAt };
-    },
-    async cancel(id) {
-      s.cancelCalls++;
-      if (s.failCancel) return { ok: false, reason: "unavailable", message: "Le service de publication ne répond pas. Réessaie dans un instant." };
-      return { ok: true, alreadyGone: !s.live.delete(id) };
-    },
-    async state() {
-      return { ok: true, state: "scheduled", sentAt: null, link: null, error: null };
-    },
-  };
-  return { s, pub };
-}
 
 const uid = `publishing-test-${Date.now()}`;
 const other = `${uid}-autre`;

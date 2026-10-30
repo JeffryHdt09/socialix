@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { EVENTS, inngest, sendPlansReview, sendTasksReady } from "@/inngest/client";
+import { syncDeliveries } from "@/lib/delivery-sync";
 import { executeReview, findPlansToReview } from "@/lib/review-service";
 import { findReadyTasks, executeTask, recoverStaleTasks } from "@/lib/task-runner";
 
@@ -65,4 +66,12 @@ export const sweepTasks = inngest.createFunction(
   },
 );
 
-export const functions = [onPlanCreated, executeAgentTask, reviewPlan, sweepTasks];
+// 5. Synchronisation de la publication toutes les 10 minutes (chapitre 14.4) : lit chez le service de publication ce qu'il a fait des
+// posts dont l'heure est venue (publié, refusé…) et rattrape ce qu'une panne a laissé de travers. Elle ne publie jamais rien. Une seule
+// à la fois : deux synchronisations simultanées n'apportent rien.
+export const syncPublications = inngest.createFunction(
+  { id: "sync-publications", triggers: [{ cron: "*/10 * * * *" }], concurrency: { limit: 1 }, retries: 0 },
+  async ({ step }) => step.run("sync", () => syncDeliveries()),
+);
+
+export const functions = [onPlanCreated, executeAgentTask, reviewPlan, sweepTasks, syncPublications];

@@ -4,6 +4,7 @@ import { PostEditor } from "@/components/posts/post-editor";
 import { requireMyProject, verifySession } from "@/lib/dal";
 import { utcToParisInput } from "@/lib/dates";
 import { imagekitConfig } from "@/lib/imagekit";
+import { readProjectAccounts } from "@/lib/account-service";
 import { getPostAs, readTeamImages } from "@/lib/post-queries";
 import { avatarPropsFor } from "@/lib/project-avatar-props";
 
@@ -16,6 +17,8 @@ export async function PostEditorLoader({ projectId, postId, focusDate }: { proje
   const post = postId ? await getPostAs(user.id, projectId, postId) : null;
   if (postId && !post) notFound();
   const teamImages = await readTeamImages(user.id, projectId);
+  // Les réseaux pour lesquels ce projet a un compte lié (chapitre 14) : sans lui, un post ne peut pas être programmé
+  const linkedPlatforms = (await readProjectAccounts(user.id, projectId)).map((a) => a.platform);
   const when = post?.scheduledAt ? utcToParisInput(post.scheduledAt) : { day: "", time: "" };
 
   return (
@@ -35,6 +38,7 @@ export async function PostEditorLoader({ projectId, postId, focusDate }: { proje
       }}
       teamImages={teamImages}
       retouchConfigured={imagekitConfig() !== null}
+      linkedPlatforms={linkedPlatforms}
       focusDate={focusDate}
     />
   );
