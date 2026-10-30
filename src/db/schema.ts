@@ -263,3 +263,45 @@ export const chatRateEvents = pgTable(
   },
   (table) => [index("chat_rate_events_user_created_idx").on(table.userId, table.createdAt)],
 ).enableRLS();
+
+// ── Chapitre 12 : les documents du projet ─────────────────────────────────────────────────────────────────────────────
+// Ce que les agents PRODUISENT et que l'étape suivante RELIT : l'étude de marché, l'offre, les scripts, la page de vente…
+// C'est le fil rouge d'un projet de A à Z. Un agent enregistre toujours un NOUVEAU document (« à relire »), il n'en écrase
+// jamais un et n'a aucun outil pour en changer l'état : c'est la personne qui valide, écarte ou remet « à relire ».
+export const documentStatusEnum = pgEnum("document_status", ["to_review", "validated", "rejected"]);
+
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    // La tâche qui l'a produit (si c'est un agent). Si la tâche disparaît, le document reste (set null).
+    taskId: uuid("task_id").references(() => agentTasks.id, { onDelete: "set null" }),
+    // « etude », « offre », « script », « page_vente »… Texte libre côté base (comme `messages.agent`) : le catalogue des
+    // types vit dans l'application (src/lib/documents.ts) et grandira avec les domaines.
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    content: text("content").notNull(),
+    status: documentStatusEnum("status").notNull().default("to_review"),
+    // Qui l'a écrit : l'identifiant d'un agent (« recherche »…) ou « user ».
+    author: text("author").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    // La lecture habituelle : les documents d'un projet, par type, du plus récent au plus ancien.
+    index("documents_project_kind_idx").on(table.projectId, table.kind, table.createdAt),
+    // Garde-fous de la base, au cas où le contrôle de l'application serait contourné :
+    check("documents_title_length", sql`char_length(btrim(${table.title})) between 1 and 120`),
+    check("documents_content_length", sql`char_length(btrim(${table.content})) between 1 and 20000`),
+    check("documents_kind_length", sql`char_length(btrim(${table.kind})) between 1 and 40`),
+    check("documents_author_length", sql`char_length(btrim(${table.author})) between 1 and 40`),
+  ],
+).enableRLS();
+
+export type DocumentRow = typeof documents.$inferSelect;

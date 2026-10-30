@@ -100,6 +100,8 @@
 
 **Rôle :** donner des consignes à l'équipe et suivre son travail.
 
+> **Chapitre 12 :** « Voir le résultat » d'une tâche montre aussi les **images** que l'agent a produites (miniatures de 160 px qui s'ouvrent dans un nouvel onglet, avec un texte alternatif) ; les documents qu'il a enregistrés sont dans la page Documents (fiche 6 bis), les brouillons de post dans la page Posts (chapitre 13).
+
 **Contenu (maquette « Nuit ») :**
 - Colonne gauche : **l'équipe**. Maître, Recherche, Créateur, Planificateur, Analytique (Vidéaste en phase 3), chacun avec son rôle et son état en une ligne. L'agent ouvert est encadré d'accent.
 - Centre : l'agent ouvert, avec ses onglets **Discussion · Tâches · Historique · Réglages** (+ **Ordinateur** au ch. 17).
@@ -124,6 +126,23 @@
 - Sur une carte « À valider » : boutons **Valider** et **Modifier** visibles directement.
 
 **États :** aucun post → « Aucun post. Demande à l'équipe IA ou crée-en un. » · onglet vide (« Aucun post programmé ») · post en échec : raison affichée (« Compte Instagram déconnecté ») + Réessayer.
+
+---
+
+## 6 bis. Documents · ch. 12
+
+**Rôle :** voir ce que l'équipe a produit (étude, offre, script, page de vente, proposition) et décider de ce qu'on garde. C'est le fil rouge d'un projet : l'étape suivante relit le travail de la précédente.
+
+**Contenu :**
+- Onglets : **À relire** (par défaut s'il y a quelque chose à relire, sinon Validés) · Validés · Écartés. Compteur en mono sur chaque onglet.
+- Une carte par document : titre, état en pilule (À relire en accent, Validé en vert, Écarté discret), `type · par agent · date`, **Lire le document** (dépliable), boutons **Valider** et **Écarter** (sur un document à relire) ou **Remettre à relire** (sur les deux autres).
+- Un document « à relire » a une bordure en pointillés (pas encore confirmé, même sens que partout).
+
+**Règles :** un agent ne peut ni modifier ni supprimer un document, ni changer son état : il en enregistre un nouveau, « à relire ». Seule la personne valide, écarte ou remet à relire. Les agents voient l'état des documents qu'ils relisent et ne s'appuient sans réserve que sur un document validé.
+
+**États :** aucun document → « Aucun document pour l'instant » + bouton « Parler au Maître » · onglet vide → une phrase (« Aucun document à relire. »).
+
+**Écarts assumés :** pas de modification du texte à la main ni de recherche (rien à chercher avant d'avoir beaucoup de documents) ; pas de compteur dans le menu ; contenu mis en forme par `FormattedText` (paragraphes, gras, puces), jamais en HTML brut.
 
 ---
 

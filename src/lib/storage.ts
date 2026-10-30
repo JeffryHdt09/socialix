@@ -89,3 +89,36 @@ export function logoUrl(key: string): string {
   if (!KEY_PATTERN.test(key)) throw new Error("Clé de logo invalide.");
   return `${readConfig().publicBase}/${key}`;
 }
+
+// ── Images produites par les agents (chapitre 12) ────────────────────────────────────────────────────────────────────
+// Même bucket que les logos, autre dossier : « agent/<utilisateur>/<projet>/<uuid>.<ext> ». La clé est générée ici (jamais
+// un nom venu du modèle) et contient le propriétaire ET le projet, donc un post ne peut référencer que les images de son
+// propre projet (voir isAgentImageKeyFor).
+export const AGENT_IMAGE_TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" } as const;
+export type AgentImageType = keyof typeof AGENT_IMAGE_TYPES;
+const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const AGENT_KEY_PATTERN = /^agent\/([A-Za-z0-9_-]{1,64})\/([0-9a-f-]{36})\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/;
+
+export async function uploadAgentImage(userId: string, projectId: string, bytes: Uint8Array, contentType: AgentImageType): Promise<string> {
+  if (!SAFE_ID.test(userId) || !UUID.test(projectId)) throw new Error("Identifiant inattendu.");
+  const key = `agent/${userId}/${projectId}/${randomUUID()}.${AGENT_IMAGE_TYPES[contentType]}`;
+  await s3().send(new PutObjectCommand({ Bucket: readConfig().bucket, Key: key, Body: bytes, ContentType: contentType, CacheControl: "public, max-age=31536000, immutable" }));
+  return key;
+}
+
+// Cette clé est-elle bien une image d'agent de CE projet et de CETTE personne ?
+export function isAgentImageKeyFor(key: string, userId: string, projectId: string): boolean {
+  const m = AGENT_KEY_PATTERN.exec(key);
+  return m !== null && m[1] === userId && m[2] === projectId;
+}
+
+export function agentImageUrl(key: string): string {
+  if (!AGENT_KEY_PATTERN.test(key)) throw new Error("Clé d'image invalide.");
+  return `${readConfig().publicBase}/${key}`;
+}
+
+export async function deleteAgentImage(key: string): Promise<void> {
+  if (!AGENT_KEY_PATTERN.test(key)) throw new Error("Clé d'image invalide.");
+  await s3().send(new DeleteObjectCommand({ Bucket: readConfig().bucket, Key: key }));
+}

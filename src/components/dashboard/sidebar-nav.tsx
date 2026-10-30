@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, CalendarDays, ChartColumn, FileText, LayoutDashboard, type LucideIcon, Settings, Share2 } from "lucide-react";
+import { Bot, CalendarDays, ChartColumn, FileText, FolderOpen, LayoutDashboard, type LucideIcon, Settings, Share2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -12,6 +12,7 @@ import { PROJECT_SECTIONS, type SectionSlug } from "@/lib/project-sections";
 const ICONS: Record<SectionSlug, LucideIcon> = {
   overview: LayoutDashboard,
   agents: Bot,
+  documents: FolderOpen,
   posts: FileText,
   calendar: CalendarDays,
   analytics: ChartColumn,

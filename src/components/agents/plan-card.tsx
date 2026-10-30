@@ -109,6 +109,20 @@ export function PlanCard({ plan, projectId, onChange, onlyAgent }: Props) {
                         Voir le résultat<span className="sr-only"> de la tâche {pad(t.position)}</span>
                       </summary>
                       <p className="mt-1 whitespace-pre-wrap break-words rounded-md border border-border bg-background p-3">{t.result}</p>
+                      {t.images.length > 0 && (
+                        <ul className="mt-2 flex flex-wrap gap-2">
+                          {t.images.map((src, i) => (
+                            <li key={src}>
+                              {/* Image produite par l'agent : ouverte en grand dans un nouvel onglet. Le lien dit où il mène. */}
+                              <a href={src} target="_blank" rel="noopener noreferrer" className="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground">
+                                {/* eslint-disable-next-line @next/next/no-img-element -- adresse externe du stockage, déjà optimisée à l'envoi */}
+                                <img src={src} alt={`Image ${i + 1} produite pour la tâche ${pad(t.position)}`} width={160} height={160} loading="lazy" className="size-40 rounded-md border border-border object-cover" />
+                                <span className="sr-only"> (s’ouvre dans un nouvel onglet)</span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </details>
                   )}
                 </div>

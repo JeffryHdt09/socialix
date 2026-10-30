@@ -6,10 +6,24 @@ import { z } from "zod";
 import { db } from "@/db";
 import { agentPlans, agentTaskDependencies, agentTasks } from "@/db/schema";
 import { ownsProject } from "@/lib/ownership";
+import { agentImageUrl, isAgentImageKeyFor } from "@/lib/storage";
 import type { CancelResult, PlanView } from "@/lib/plan-types";
 
 // Lecture et annulation des plans. Comme chat-service, ces fonctions prennent le propriétaire (`userId`) en paramètre :
 // l'action serveur et la DAL le tirent de la session, jamais d'une adresse ou d'un formulaire.
+
+// Les adresses des images jointes au résultat d'une tâche. Une clé n'est suivie que si elle est bien une image de CE projet et de
+// CETTE personne (isAgentImageKeyFor) : une valeur anormale en base ne fait afficher l'image de personne d'autre. Si le
+// stockage n'est pas configuré, on n'affiche simplement pas d'image plutôt que de faire échouer la page.
+function taskImageUrls(output: unknown, userId: string, projectId: string): string[] {
+  const keys = (output as { images?: unknown } | null)?.images;
+  if (!Array.isArray(keys)) return [];
+  try {
+    return keys.filter((k): k is string => typeof k === "string" && isAgentImageKeyFor(k, userId, projectId)).map(agentImageUrl);
+  } catch {
+    return [];
+  }
+}
 
 // Les plans d'un projet (les plus récents d'abord) avec leurs tâches et dépendances. Liste vide si le projet n'est
 // pas à la personne. `onlyPlanId` : un seul plan (vérifié sur le projet, pour qu'un identifiant d'une autre projet ne passe pas).
@@ -49,6 +63,7 @@ export async function readPlans(userId: string, projectId: string, options: { li
         instruction: t.instruction,
         status: t.status,
         result: typeof (t.output as { text?: unknown } | null)?.text === "string" ? (t.output as { text: string }).text : null,
+        images: taskImageUrls(t.output, userId, projectId),
         lastError: t.lastError,
         nextRunAt: t.nextRunAt ? t.nextRunAt.toISOString() : null,
         dependsOn: links
