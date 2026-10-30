@@ -125,6 +125,8 @@
 - Menu de chaque carte : Modifier et reprogrammer · Déprogrammer (→ Brouillons) · Dupliquer · Supprimer (avec confirmation).
 - Sur une carte « À valider » : boutons **Valider** et **Modifier** visibles directement.
 
+> **Réalisée au chapitre 13**, avec ces écarts assumés : le « menu de chaque carte » est remplacé par des **boutons visibles** (Modifier, Déprogrammer, Dupliquer, Supprimer avec confirmation : moins de clics, et pas de menu à piéger au clavier) ; « Valider » programme directement un post d'agent qui a déjà date, réseau, légende et image, sinon il ouvre l'éditeur sur la date (`?programmer=1`) ; « Réessayer » d'un post en échec arrive avec le service de publication (chapitre 14, la base ne garde pas encore la raison de l'échec) ; un post publié ne peut que se dupliquer ; les onglets se choisissent dans l'adresse (`?statut=a-valider|programmes|brouillons|publies|echecs`).
+
 **États :** aucun post → « Aucun post. Demande à l'équipe IA ou crée-en un. » · onglet vide (« Aucun post programmé ») · post en échec : raison affichée (« Compte Instagram déconnecté ») + Réessayer.
 
 ---
@@ -162,6 +164,8 @@
 - Actions en bas : Enregistrer en brouillon · **Programmer** (bouton principal). Pour un client : « Envoyer en validation ».
 
 **Éditeur d'image (fenêtre, ImageKit) :** recadrage (1:1, 4:5, 9:16, 16:9), détourage, agrandissement, retouche, changement de fond par consigne écrite, noir et blanc, texte par-dessus (taille, position). Aperçu immédiat, Annuler / Enregistrer.
+
+> **Réalisé au chapitre 13** (`/dashboard/[projectId]/posts/new` et `/posts/[postId]`), avec ces écarts assumés : « seulement les comptes connectés » et « Envoyer en validation » (client) arrivent aux chapitres 14 et 19 : pour l'instant tous les réseaux sont proposés, sauf TikTok et YouTube (vidéo, phase 3) ; la date se saisit en **heure de Paris** (le fuseau est affiché, pas encore modifiable) ; l'aperçu a deux dispositions (Instagram : image puis légende ; les autres : texte puis image) avec la coupure propre à chaque réseau et un sélecteur quand plusieurs réseaux sont choisis ; l'éditeur d'image est une fenêtre à droite (recadrage 1:1, 4:5, 9:16, 16:9 ; une retouche IA parmi détourer, agrandir, améliorer, changer le fond par une consigne ; noir et blanc ; texte avec taille, position, couleur) : elle part toujours de l'image d'origine et garde le résultat dans notre stockage ; sans ImageKit configuré, « Retoucher » est grisé avec la raison écrite ; pendant la retouche, l'image est estompée et « Retouche… » s'affiche (pas de flou : le verre dépoli est interdit par la charte).
 
 **États :** champ obligatoire manquant · image trop lourde · date passée refusée · aucun compte connecté pour le réseau choisi (lien vers Comptes) · enregistrement en cours · retouche en cours (aperçu flouté + « Retouche… »).
 

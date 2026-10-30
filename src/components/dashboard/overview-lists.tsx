@@ -55,7 +55,7 @@ export function ReviewList({ items, projectId }: { items: ReviewItem[]; projectI
                 </p>
               </div>
               <Button asChild variant="outline" size="sm">
-                <Link href={`/dashboard/${projectId}/posts`}>
+                <Link href={`/dashboard/${projectId}/posts/${post.id}`}>
                   Relire<span className="sr-only"> « {post.title} »</span>
                 </Link>
               </Button>

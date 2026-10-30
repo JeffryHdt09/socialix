@@ -92,7 +92,7 @@ export function ReviewCard({ overview, projectId }: { overview: Overview; projec
       </p>
       {active && (
         <Button asChild className="mt-5 self-start">
-          <Link href={`/dashboard/${projectId}/posts`}>Relire maintenant</Link>
+          <Link href={`/dashboard/${projectId}/posts?statut=a-valider`}>Relire maintenant</Link>
         </Button>
       )}
     </div>

@@ -98,16 +98,20 @@ export const AGENT_IMAGE_TYPES = { "image/png": "png", "image/jpeg": "jpg", "ima
 export type AgentImageType = keyof typeof AGENT_IMAGE_TYPES;
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const AGENT_KEY_PATTERN = /^agent\/([A-Za-z0-9_-]{1,64})\/([0-9a-f-]{36})\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/;
+const AGENT_KEY_PATTERN = /^(?:agent|post)\/([A-Za-z0-9_-]{1,64})\/([0-9a-f-]{36})\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp)$/;
 
-export async function uploadAgentImage(userId: string, projectId: string, bytes: Uint8Array, contentType: AgentImageType): Promise<string> {
+async function uploadProjectImage(prefix: "agent" | "post", userId: string, projectId: string, bytes: Uint8Array, contentType: AgentImageType): Promise<string> {
   if (!SAFE_ID.test(userId) || !UUID.test(projectId)) throw new Error("Identifiant inattendu.");
-  const key = `agent/${userId}/${projectId}/${randomUUID()}.${AGENT_IMAGE_TYPES[contentType]}`;
+  const key = `${prefix}/${userId}/${projectId}/${randomUUID()}.${AGENT_IMAGE_TYPES[contentType]}`;
   await s3().send(new PutObjectCommand({ Bucket: readConfig().bucket, Key: key, Body: bytes, ContentType: contentType, CacheControl: "public, max-age=31536000, immutable" }));
   return key;
 }
 
-// Cette clé est-elle bien une image d'agent de CE projet et de CETTE personne ?
+// Image produite par un agent (« agent/… ») ou téléversée / retouchée par la personne dans l'éditeur de post (« post/… »).
+export const uploadAgentImage = (userId: string, projectId: string, bytes: Uint8Array, contentType: AgentImageType) => uploadProjectImage("agent", userId, projectId, bytes, contentType);
+export const uploadPostImage = (userId: string, projectId: string, bytes: Uint8Array, contentType: AgentImageType) => uploadProjectImage("post", userId, projectId, bytes, contentType);
+
+// Cette clé est-elle bien une image (d'agent ou de post) de CE projet et de CETTE personne ?
 export function isAgentImageKeyFor(key: string, userId: string, projectId: string): boolean {
   const m = AGENT_KEY_PATTERN.exec(key);
   return m !== null && m[1] === userId && m[2] === projectId;
@@ -116,6 +120,16 @@ export function isAgentImageKeyFor(key: string, userId: string, projectId: strin
 export function agentImageUrl(key: string): string {
   if (!AGENT_KEY_PATTERN.test(key)) throw new Error("Clé d'image invalide.");
   return `${readConfig().publicBase}/${key}`;
+}
+
+// L'adresse publique d'une image du projet → sa clé, ou null si ce n'est PAS une image de ce projet et de cette personne.
+// Une adresse écrite dans le formulaire d'un post n'est jamais crue : seule une image de NOTRE stockage et de CE projet passe
+// (sinon une adresse choisie à la main ferait charger n'importe quoi dans l'aperçu et dans les posts).
+export function projectImageKeyFromUrl(url: string, userId: string, projectId: string): string | null {
+  const base = `${readConfig().publicBase}/`;
+  if (!url.startsWith(base)) return null;
+  const key = url.slice(base.length);
+  return isAgentImageKeyFor(key, userId, projectId) ? key : null;
 }
 
 export async function deleteAgentImage(key: string): Promise<void> {

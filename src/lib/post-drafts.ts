@@ -2,29 +2,19 @@ import "server-only";
 
 import { db } from "@/db";
 import { posts } from "@/db/schema";
+import { cleanHashtags, HASHTAGS_MAX, PLATFORMS, type Platform, TITLE_MAX } from "@/lib/post-rules";
 import { agentImageUrl, isAgentImageKeyFor } from "@/lib/storage";
 
 // Les brouillons de post écrits par les agents (chapitre 12). Un agent ne programme ni ne publie rien : il dépose un post
 // « à valider » (statut to_review, auteur « agent », sans date). La personne le relit, le modifie et le programme
 // (chapitres 13 à 15). Le projet vient de la tâche, pas du modèle.
 
-export const PLATFORMS = ["instagram", "facebook", "linkedin", "x", "tiktok", "threads", "pinterest", "youtube"] as const;
-export type Platform = (typeof PLATFORMS)[number];
-
-export const MAX_CAPTION_CHARS = 2200; // la limite d'Instagram, la plus longue des légendes courantes
-export const MAX_POST_TITLE_CHARS = 120; // même plafond que la base (check posts_title_length)
-export const MAX_HASHTAGS = 30;
-
-// « #Café » et « café » deviennent « café » ; on garde lettres, chiffres et tiret bas, 50 signes au plus, sans doublon.
-export function cleanHashtags(raw: readonly string[]): string[] {
-  const out: string[] = [];
-  for (const h of raw) {
-    const tag = h.trim().replace(/^#+/, "").replace(/[^\p{L}\p{N}_]/gu, "").slice(0, 50).toLowerCase();
-    if (tag && !out.includes(tag)) out.push(tag);
-    if (out.length >= MAX_HASHTAGS) break;
-  }
-  return out;
-}
+// Les règles communes (réseaux, hashtags, plafonds) sont dans post-rules.ts, partagées avec l'éditeur. Les brouillons d'agent sont
+// plus stricts : une légende de 2 200 signes au plus (la limite d'Instagram, la plus longue des légendes courantes).
+export { cleanHashtags, PLATFORMS, type Platform };
+export const MAX_CAPTION_CHARS = 2200;
+export const MAX_POST_TITLE_CHARS = TITLE_MAX;
+export const MAX_HASHTAGS = HASHTAGS_MAX;
 
 export type DraftInput = { userId: string; projectId: string; title: string; caption: string; hashtags: readonly string[]; platforms: readonly string[]; imageKey?: string };
 export type DraftResult = { ok: true; id: string } | { ok: false; reason: "invalide" | "image_inconnue" };
