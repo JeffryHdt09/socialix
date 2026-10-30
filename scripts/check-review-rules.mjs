@@ -22,6 +22,7 @@ function load(file) {
   return m.exports;
 }
 const R = load(path.join(root, "src/lib/review-rules.ts"));
+const Types = load(path.join(root, "src/lib/plan-types.ts"));
 
 let ok = 0;
 let ko = 0;
@@ -88,6 +89,13 @@ check("revue : le résultat piégé est écarté", msg.includes("résultat écar
 check("revue : l'échec est signalé", msg.includes("ÉCHEC") && msg.includes("(pas de résultat)"));
 check("revue : la demande d'origine est présente", msg.includes("2 posts pour un café"));
 check("revue : dernière revue signalée", R.buildReviewMessage({ request: "a", summary: "b", tasks: [], round: R.MAX_REVIEW_ROUNDS }).includes("dernière possible"));
+
+// --- état « le Maître relit » (affichage de la carte du plan)
+const view = (status, statuses) => ({ status, tasks: statuses.map((s) => ({ status: s })) });
+check("relecture : plan actif, toutes les tâches closes", Types.isAwaitingReview(view("active", ["done", "failed", "cancelled"])));
+check("relecture : pas tant qu'une tâche tourne ou attend", !Types.isAwaitingReview(view("active", ["done", "running"])) && !Types.isAwaitingReview(view("active", ["done", "pending"])));
+check("relecture : jamais pour un plan terminé ou annulé", !Types.isAwaitingReview(view("done", ["done"])) && !Types.isAwaitingReview(view("cancelled", ["done"])));
+check("relecture : un plan sans tâche n'est pas « en relecture »", !Types.isAwaitingReview(view("active", [])));
 
 console.log(`\n${ok} réussis, ${ko} échoués`);
 process.exit(ko ? 1 : 0);

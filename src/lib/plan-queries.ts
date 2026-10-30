@@ -53,6 +53,8 @@ export async function readPlans(userId: string, projectId: string, options: { li
     summary: p.summary,
     status: p.status,
     createdAt: p.createdAt.toISOString(),
+    report: p.report,
+    reviewRound: p.reviewRound,
     tasks: tasks
       .filter((t) => t.planId === p.id)
       .map((t) => ({
