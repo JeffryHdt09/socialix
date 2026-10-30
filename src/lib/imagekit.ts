@@ -7,9 +7,9 @@ import { buildTransformation, type RetouchSpec } from "@/lib/retouch-rules";
 // ATELIER, pas comme stockage : l'image à retoucher y est envoyée, transformée, récupérée, puis supprimée d'ImageKit ; le résultat
 // est rangé dans NOTRE stockage. La clé privée ne quitte jamais le serveur.
 //
-// À VÉRIFIER avec un vrai compte (aucun n'était ouvert quand ce fichier a été écrit) : l'adresse d'envoi, les champs du formulaire et
-// l'adresse de suppression ci-dessous viennent de l'API d'ImageKit telle que je la connais, pas d'un essai réel. La syntaxe des
-// transformations, elle, vient de leur documentation (retouch-rules.ts).
+// Vérifié avec un vrai compte le 30/10/2026 (scripts/check-imagekit-real.mjs) : l'adresse d'envoi, les champs du formulaire, l'adresse
+// de suppression et les transformations recadrage, noir et blanc, détourage IA et texte. Pas encore essayés en vrai : agrandir,
+// améliorer et changer le fond. ImageKit doit pouvoir télécharger l'image à son adresse (le stockage Supabase le permet).
 
 const UPLOAD_URL = "https://upload.imagekit.io/api/v1/files/upload";
 const API_URL = "https://api.imagekit.io/v1/files";
