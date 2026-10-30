@@ -190,7 +190,9 @@ async function succeed(task: Claimed, output: { text: string; model: string; at:
   const repeatsAt = task.repeatEveryMinutes ? new Date(Date.now() + task.repeatEveryMinutes * 60_000) : null;
   const again = repeatsAt !== null && (task.repeatUntil === null || repeatsAt <= task.repeatUntil);
   // « status = running » dans la condition : si la personne a annulé le plan pendant que l'agent travaillait, la tâche est déjà
-  // « annulée » et ce résultat est écarté (on n'écrase jamais une annulation).
+  // « annulée » et ce résultat est écarté (on n'écrase jamais une annulation). « attempts = task.attempts » fait de même quand la
+  // tâche a été reprise par un autre exécuteur (balayage des tâches abandonnées) : claimTask a incrémenté attempts, donc un
+  // ancien exécuteur, resté trop longtemps au travail, ne retrouve plus sa valeur et n'écrase pas le résultat du nouveau.
   const updated = await db
     .update(agentTasks)
     .set({
@@ -202,7 +204,7 @@ async function succeed(task: Claimed, output: { text: string; model: string; at:
       nextRunAt: again ? repeatsAt : null,
       attempts: again ? 0 : task.attempts,
     })
-    .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running")))
+    .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running"), eq(agentTasks.attempts, task.attempts)))
     .returning({ id: agentTasks.id });
   if (updated.length === 0) return { outcome: "cancelled", readyTaskIds: [] };
   await settlePlan(task.planId);
@@ -214,7 +216,7 @@ async function defer(task: Claimed): Promise<RunResult> {
   await db.execute(sql`
     update agent_tasks set status = 'pending', attempts = greatest(attempts - 1, 0), last_error = 'quota',
       next_run_at = now() + make_interval(mins => ${QUOTA_RETRY_MINUTES}), updated_at = now()
-    where id = ${task.id} and status = 'running'`);
+    where id = ${task.id} and status = 'running' and attempts = ${task.attempts}`);
   return { outcome: "deferred", readyTaskIds: [] };
 }
 
@@ -223,7 +225,7 @@ async function retryOrFail(task: Claimed, reason: string): Promise<RunResult> {
   // Attente croissante entre deux essais : 2 minutes, puis 4
   await db.execute(sql`
     update agent_tasks set status = 'pending', last_error = ${reason}, next_run_at = now() + make_interval(mins => ${task.attempts * 2}), updated_at = now()
-    where id = ${task.id} and status = 'running'`);
+    where id = ${task.id} and status = 'running' and attempts = ${task.attempts}`);
   return { outcome: "retry", readyTaskIds: [] };
 }
 
@@ -231,7 +233,7 @@ async function fail(task: Claimed, reason: string): Promise<RunResult> {
   const updated = await db
     .update(agentTasks)
     .set({ status: "failed", lastError: reason, finishedAt: new Date() })
-    .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running")))
+    .where(and(eq(agentTasks.id, task.id), eq(agentTasks.status, "running"), eq(agentTasks.attempts, task.attempts)))
     .returning({ id: agentTasks.id });
   if (updated.length === 0) return { outcome: "cancelled", readyTaskIds: [] };
   await cancelBlockedTasks(task.planId);
